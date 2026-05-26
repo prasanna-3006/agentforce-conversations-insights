@@ -1,0 +1,1289 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentforce Conversation Insights — March 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  /* ── Executive theme — Salesforce palette ── */
+  :root {
+    --navy:   #0A2240;
+    --blue:   #0176D3;
+    --teal:   #06A59A;
+    --orange: #FE9339;
+    --red:    #BA0517;
+    --green:  #2E844A;
+    --grey:   #747474;
+    --bg:     #F4F6F9;
+    --surface:#FFFFFF;
+    --surface2:#F7FAFF;
+    --border: #D8E4F0;
+    --text:   #1A1A1A;
+    --muted:  #747474;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; }
+
+  /* ── Header ── */
+  header {
+    background: var(--navy);
+    padding: 36px 24px 30px;
+    position: relative;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header::before { content:''; position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--blue); }
+  header::after  { content:''; position:absolute; right:-80px; top:-80px; width:300px; height:300px; border-radius:50%; background:rgba(1,118,211,0.08); }
+  header .header-left { position:relative; z-index:1; }
+  header .header-label { font-size:11px; font-weight:700; letter-spacing:2px; color:var(--teal); text-transform:uppercase; margin-bottom:8px; }
+  header h1 { font-size:26px; font-weight:700; color:#fff; line-height:1.2; margin-bottom:6px; }
+  header .subtitle { color:#8ABFEF; font-size:13px; }
+  header .header-divider { width:48px; height:3px; background:var(--teal); border-radius:2px; margin:12px 0; }
+  .badge { background:var(--teal); color:#fff; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; letter-spacing:.5px; position:relative; z-index:1; }
+
+  /* ── Filters ── */
+  .filters { background:var(--surface); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+  .filters label { color:var(--muted); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; margin-right:4px; }
+  select { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:5px 10px; border-radius:6px; font-size:13px; cursor:pointer; }
+  select:focus { outline:none; border-color:var(--blue); }
+  .filter-group { display:flex; align-items:center; gap:6px; }
+  .filter-divider { width:1px; height:20px; background:var(--border); }
+  .reset-btn { background:var(--surface2); border:1px solid var(--border); color:var(--muted); padding:5px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all .2s; }
+  .reset-btn:hover { border-color:var(--blue); color:var(--blue); }
+
+  /* ── Layout ── */
+  main { padding: 28px 24px; display:grid; gap:20px; }
+  main > * { min-width: 0; }
+  .chart-row > * { min-width: 0; }
+  .kpi-row > * { min-width: 0; }
+  .breakdown-row > * { min-width: 0; }
+
+  /* ── KPI cards ── */
+  .kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .kpi { background:var(--surface); border-radius:10px; padding:18px 16px 14px; border-top:4px solid var(--blue); box-shadow:0 1px 4px rgba(0,0,0,0.07); transition:transform .2s, box-shadow .2s; }
+  .kpi:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+  .kpi .val { font-size:32px; font-weight:700; color:var(--navy); line-height:1; }
+  .kpi .lbl { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); margin-top:6px; }
+  .kpi .sub { font-size:11px; color:var(--muted); margin-top:3px; }
+  .kpi .desc { font-size:10px; color:var(--muted); margin-top:6px; line-height:1.4; }
+  .kpi.green { border-top-color:var(--green); }  .kpi.green .val { color:var(--green); }
+  .kpi.red   { border-top-color:var(--red); }    .kpi.red   .val { color:var(--red); }
+  .kpi.warn  { border-top-color:var(--orange); } .kpi.warn  .val { color:var(--orange); }
+  .kpi.blue  { border-top-color:var(--blue); }   .kpi.blue  .val { color:var(--blue); }
+  .kpi.teal  { border-top-color:var(--teal); }   .kpi.teal  .val { color:var(--teal); }
+  .kpi.white { border-top-color:var(--navy); }   .kpi.white .val { color:var(--navy); }
+
+  /* ── Unresolved breakdown row ── */
+  .breakdown-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .breakdown-header { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--red); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+  .breakdown-header::before { content:''; display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--red); flex-shrink:0; }
+  .breakdown-header::after { content:''; flex:1; height:1px; background:#F5D0D0; }
+  .kpi-sub { background:#FFF8F8; border-radius:10px; padding:14px 16px 12px; border-top:3px solid var(--red); border-left:1px solid #F5D0D0; border-right:1px solid #F5D0D0; border-bottom:1px solid #F5D0D0; box-shadow:0 1px 3px rgba(186,5,23,0.06); }
+  .kpi-sub .val { font-size:26px; font-weight:700; color:var(--red); line-height:1; }
+  .kpi-sub .lbl { font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); margin-top:5px; }
+  .kpi-sub .sub { font-size:10px; color:var(--muted); margin-top:2px; }
+  .kpi-sub .of-unres { font-size:10px; color:var(--red); font-weight:600; margin-top:2px; }
+  .kpi-sub .desc { font-size:10px; color:var(--muted); margin-top:5px; line-height:1.4; }
+  .kpi-sub.warn { border-top-color:var(--orange); background:#FFFAF5; border-left-color:#FFE8CC; border-right-color:#FFE8CC; border-bottom-color:#FFE8CC; box-shadow:0 1px 3px rgba(254,147,57,0.06); }
+  .kpi-sub.warn .val { color:var(--orange); }
+  .kpi-sub.warn .of-unres { color:var(--orange); }
+
+  /* ── Chart cards ── */
+  .chart-row { display:grid; gap:20px; }
+  .chart-row.cols2  { grid-template-columns:1fr 1fr; }
+  .chart-row.cols3  { grid-template-columns:1fr 1fr 1fr; }
+  .chart-row.cols12 { grid-template-columns:1fr 2fr; }
+  .card { background:var(--surface); border-radius:10px; padding:22px; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
+  .card h2 { font-size:13px; font-weight:700; color:var(--navy); margin-bottom:4px; display:flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:.5px; }
+  .card h2 .tag { background:var(--surface2); border:1px solid var(--border); padding:2px 8px; border-radius:4px; font-size:10px; color:var(--muted); font-weight:600; text-transform:none; letter-spacing:0; }
+  .chart-desc { font-size:11px; color:var(--muted); margin-bottom:14px; line-height:1.5; }
+  .chart-wrap { position:relative; width:100%; }
+  .chart-wrap canvas { max-width:100%; }
+
+  /* ── Section titles ── */
+  .section-title { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--blue); margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+  .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x:auto; max-height:440px; overflow-y:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead th { background:var(--navy); color:#fff; font-size:11px; font-weight:600; letter-spacing:.3px; text-transform:uppercase; padding:10px 12px; text-align:left; position:sticky; top:0; z-index:1; cursor:pointer; user-select:none; white-space:nowrap; }
+  thead th:hover { background:#0d2d55; }
+  thead th .sort-icon { opacity:0.5; margin-left:4px; }
+  thead th.asc  .sort-icon::after { content:' ▲'; }
+  thead th.desc .sort-icon::after { content:' ▼'; }
+  tbody tr:nth-child(even) { background:var(--surface2); }
+  tbody tr:hover { background:#EEF4FF; }
+  tbody td { padding:9px 12px; vertical-align:middle; border-bottom:1px solid var(--border); color:var(--text); }
+
+  /* ── Pills ── */
+  .pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+  .pill.neg  { background:#FEE9E9; color:var(--red); }
+  .pill.neu  { background:#EEF4FF; color:var(--blue); }
+  .pill.pos  { background:#EAF5EE; color:var(--green); }
+  .pill.yes  { background:#EAF5EE; color:var(--green); }
+  .pill.no   { background:#F3F3F3; color:var(--grey); }
+  .pill.esc  { background:#FFF3E8; color:var(--orange); }
+
+  /* ── Cluster tag ── */
+  .cluster-tag { background:#FFF8EE; border:1px solid #FFDFA0; padding:2px 7px; border-radius:4px; font-size:11px; color:#8A5700; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; }
+  .chart-note { font-size:10px; color:var(--orange); margin-top:6px; font-style:italic; }
+
+  /* ── Utterance & reason cells ── */
+  .utterance-cell { max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:12px; cursor:pointer; }
+  .utterance-cell:hover { color:var(--navy); }
+  .reason-cell { font-size:11px; color:var(--muted); max-width:260px; line-height:1.4; cursor:pointer; }
+  .reason-cell:hover { color:var(--navy); }
+
+  /* ── Expand row ── */
+  .expand-row td { background:#EEF4FF; font-size:12px; color:var(--text); padding:12px 16px; line-height:1.6; border-bottom:2px solid var(--blue); }
+  .expand-row .reason-detail { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px 20px; }
+  .expand-row .reason-detail .ritem strong { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:2px; }
+  .expand-row .reason-detail .ritem span { color:var(--navy); font-size:12px; font-weight:600; }
+  .expand-row .reason-full { margin-top:10px; padding-top:10px; border-top:1px solid var(--border); color:#444; font-style:italic; }
+
+  /* ── Sparkbar ── */
+  .spark-bar { display:flex; align-items:center; gap:6px; }
+  .spark-bar .bar { height:6px; border-radius:3px; background:var(--blue); }
+  .spark-bar .val { font-size:12px; color:var(--muted); min-width:20px; }
+
+  /* ── Insight chips ── */
+  .insights { display:flex; flex-wrap:nowrap; gap:12px; margin-top:4px; }
+  .insight-chip { background:var(--surface); border-radius:10px; padding:14px 18px; font-size:12px; display:flex; align-items:flex-start; gap:10px; flex:1; min-width:0; box-shadow:0 1px 4px rgba(0,0,0,0.07); border-left:4px solid var(--blue); }
+  .insight-chip.teal  { border-left-color:var(--teal); }
+  .insight-chip.orange{ border-left-color:var(--orange); }
+  .insight-chip.red   { border-left-color:var(--red); }
+  .insight-chip.green { border-left-color:var(--green); }
+  .insight-chip .icon { font-size:20px; line-height:1; }
+  .insight-chip .text strong { display:block; color:var(--navy); font-size:13px; font-weight:700; margin-bottom:3px; }
+  .insight-chip .text span { color:var(--muted); line-height:1.5; }
+
+  /* ── Tabs ── */
+  .tabs { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:0; }
+  .tab { padding:9px 18px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .2s; }
+  .tab:hover { color:var(--navy); }
+  .tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+  /* Sub-tabs — drill-down row shown only when Unresolved is active */
+  .subtabs { display:none; gap:0; border-bottom:2px solid var(--border); margin-bottom:16px; background:var(--surface2); padding-left:18px; }
+  .subtabs.visible { display:flex; }
+  .subtab { padding:7px 16px; font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .2s; }
+  .subtab:hover { color:var(--red); }
+  .subtab.active { color:var(--red); border-bottom-color:var(--red); }
+  .subtabs-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); padding:7px 12px 7px 0; align-self:center; }
+
+  /* ── Priority Actions ── */
+  .priority-list { display:flex; flex-direction:column; gap:12px; }
+  .priority-item { background:var(--surface); border-radius:10px; padding:18px 22px; box-shadow:0 1px 4px rgba(0,0,0,0.07); display:flex; align-items:flex-start; gap:16px; }
+  .priority-badge { flex-shrink:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#fff; }
+  .badge-red    { background:var(--red); }
+  .badge-orange { background:var(--orange); }
+  .badge-blue   { background:var(--blue); }
+  .badge-teal   { background:var(--teal); }
+  .priority-content h4 { font-size:14px; font-weight:700; color:var(--navy); margin-bottom:4px; }
+  .priority-content p  { font-size:13px; color:#555; line-height:1.55; }
+  .priority-tag { display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+  .ptag-critical { background:#FEE9E9; color:var(--red); }
+  .ptag-monitor  { background:#FFF3E8; color:var(--orange); }
+  .ptag-optimise { background:#EEF4FF; color:var(--blue); }
+  .ptag-good     { background:#EAF5EE; color:var(--green); }
+
+  /* ── Top KB table ── */
+  .kb-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .kb-table th { background:var(--surface2); color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; padding:8px 12px; text-align:left; border-bottom:2px solid var(--border); }
+  .kb-table td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .kb-table tr:last-child td { border-bottom:none; }
+  .kb-table tr:hover td { background:var(--surface2); }
+  .kb-bar-wrap { display:flex; align-items:center; gap:8px; }
+  .kb-bar { height:8px; border-radius:4px; background:var(--blue); flex-shrink:0; }
+  .kb-count { font-size:12px; color:var(--muted); min-width:24px; }
+  .kb-name { color:var(--navy); font-weight:500; max-width:420px; }
+  .kb-tag-res  { background:#EAF5EE; color:var(--green); }
+  .kb-tag-unres{ background:#FEE9E9; color:var(--red); }
+  .kb-tag-warn { background:#FFF3E8; color:var(--orange); }
+  .kb-no-data  { color:var(--muted); font-size:13px; font-style:italic; padding:16px 0; }
+  .kb-tabs     { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:16px; }
+  .kb-tab      { padding:7px 16px; font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .2s; }
+  .kb-tab:hover{ color:var(--navy); }
+  .kb-tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+
+  /* ── Footer ── */
+  footer { background:var(--navy); color:#8ABFEF; text-align:center; padding:20px 24px; font-size:12px; line-height:1.7; margin-top:8px; }
+  footer strong { color:#fff; }
+
+  /* ── Responsive breakpoints ── */
+
+  /* Large desktop (1400px+) — default, no overrides needed */
+
+  /* Standard desktop / laptop (1100–1399px) */
+  @media (max-width:1399px) {
+    header, main, .filters { padding-left:12px; padding-right:12px; }
+    .kpi-row { grid-template-columns:repeat(4,1fr); }
+    .breakdown-row { grid-template-columns:repeat(4,1fr); }
+    .chart-row-r1 { grid-template-columns:1fr 1.6fr 1fr 1.6fr !important; }
+    .chart-row.cols12 { grid-template-columns:1fr 1.5fr; }
+    main { gap:12px; }
+    .card { padding:14px 12px; }
+    .chart-wrap { max-height:180px; }
+    .table-wrap { max-height:360px; }
+    .kpi { padding:12px 10px 9px; }
+    .kpi .val { font-size:24px; }
+    .kpi-sub { padding:10px 10px 8px; }
+    .kpi-sub .val { font-size:20px; }
+    .priority-item { padding:12px 14px; }
+    .insight-chip { padding:10px 12px; min-width:160px; }
+    header h1 { font-size:20px; }
+  }
+
+  /* Small laptop / large tablet landscape (900–1099px) */
+  @media (max-width:1099px) {
+    header, main, .filters { padding-left:8px; padding-right:8px; }
+    main { gap:12px; }
+    .kpi-row { grid-template-columns:repeat(2,1fr); }
+    .breakdown-row { grid-template-columns:repeat(2,1fr); }
+    .chart-row-r1 { grid-template-columns:1fr 1fr !important; }
+    .chart-row.cols2  { grid-template-columns:1fr 1fr; }
+    .chart-row.cols3  { grid-template-columns:1fr 1fr; }
+    .chart-row.cols12 { grid-template-columns:1fr 1fr; }
+    .kpi .val { font-size:26px; }
+  }
+
+  /* Tablet portrait (600–899px) */
+  @media (max-width:899px) {
+    header, main, .filters { padding-left:8px; padding-right:8px; }
+    header { flex-direction:column; align-items:flex-start; gap:12px; }
+    .kpi-row { grid-template-columns:repeat(2,1fr); }
+    .breakdown-row { grid-template-columns:repeat(2,1fr); }
+    .chart-row-r1 { grid-template-columns:1fr !important; }
+    .chart-row.cols2  { grid-template-columns:1fr; }
+    .chart-row.cols3  { grid-template-columns:1fr; }
+    .chart-row.cols12 { grid-template-columns:1fr; }
+    .filters { flex-direction:column; align-items:flex-start; gap:8px; }
+    .filter-divider { display:none; }
+    .table-wrap { max-height:none; }
+    .tabs { flex-wrap:wrap; }
+    .kpi .val { font-size:24px; }
+    .kpi-sub .val { font-size:20px; }
+    main { gap:14px; }
+  }
+
+  /* Mobile (< 600px) */
+  @media (max-width:599px) {
+    header, main, .filters { padding-left:6px; padding-right:6px; }
+    header h1 { font-size:20px; }
+    .kpi-row { grid-template-columns:1fr 1fr; }
+    .breakdown-row { grid-template-columns:1fr 1fr; }
+    .chart-row-r1 { grid-template-columns:1fr !important; }
+    .chart-row.cols2, .chart-row.cols3, .chart-row.cols12 { grid-template-columns:1fr; }
+    .kpi { padding:14px 12px 10px; }
+    .kpi .val { font-size:22px; }
+    .kpi-sub .val { font-size:18px; }
+    .card { padding:16px 14px; }
+    .card h2 { font-size:11px; }
+    .insight-chip { min-width:100%; }
+    .tab { padding:7px 12px; font-size:12px; }
+    .subtab { padding:6px 10px; font-size:11px; }
+    main { gap:12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="header-label">Conversation Analysis</div>
+    <h1>Agentforce Conversation Insights</h1>
+    <div class="subtitle">March 2026 &nbsp;·&nbsp; 92 sessions &nbsp;·&nbsp; 35 topic clusters &nbsp;·&nbsp; All unauthenticated users</div>
+    <div class="header-divider"></div>
+  </div>
+  <span class="badge">March 2026</span>
+</header>
+
+<div class="filters">
+  <div class="filter-group"><label>Sentiment</label>
+    <select id="fSentiment">
+      <option value="all">All</option>
+      <option value="Negative">Negative</option>
+      <option value="Neutral">Neutral</option>
+      <option value="Positive">Positive</option>
+    </select>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group"><label>Resolved</label>
+    <select id="fResolved">
+      <option value="all">All</option>
+      <option value="true">Yes</option>
+      <option value="false">No</option>
+    </select>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group"><label>Escalated</label>
+    <select id="fEscalated">
+      <option value="all">All</option>
+      <option value="true">Yes</option>
+      <option value="false">No</option>
+    </select>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group"><label>Knowledge Gap</label>
+    <select id="fKG">
+      <option value="all">All</option>
+      <option value="true">Yes</option>
+      <option value="false">No</option>
+    </select>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group"><label>Engagement Failure</label>
+    <select id="fEF">
+      <option value="all">All</option>
+      <option value="true">Yes</option>
+      <option value="false">No</option>
+    </select>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group"><label>Cluster <span style="color:var(--orange);font-size:10px" title="Cluster names are auto-generated keywords from session content">*</span></label>
+    <select id="fCluster"><option value="all">All Clusters</option></select>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group"><label>Turns</label>
+    <select id="fExchanges">
+      <option value="all">All</option>
+      <option value="0">0 (no reply)</option>
+      <option value="1">1</option>
+      <option value="2-3">2–3</option>
+      <option value="4-6">4–6</option>
+      <option value="7-10">7–10</option>
+      <option value="10+">10+</option>
+    </select>
+  </div>
+  <div class="filter-divider"></div>
+  <button class="reset-btn" onclick="resetFilters()">Reset Filters</button>
+  <span id="filterCount" style="color:var(--muted);font-size:12px;margin-left:8px;"></span>
+</div>
+
+<main>
+
+  <!-- KPI Row — primary outcomes -->
+  <div class="kpi-row">
+    <div class="kpi green">
+      <div class="val" id="kResolved">—</div>
+      <div class="lbl">Resolved</div>
+      <div class="sub" id="kResolvedPct"></div>
+      <div class="desc">Agent gave a complete, relevant answer and the user's issue was addressed</div>
+    </div>
+    <div class="kpi red">
+      <div class="val" id="kUnresolved">—</div>
+      <div class="lbl">Unresolved</div>
+      <div class="sub" id="kUnresolvedPct"></div>
+      <div class="desc">User left without a satisfactory answer — see breakdown below for root causes</div>
+    </div>
+    <div class="kpi blue">
+      <div class="val" id="kAvgEx">—</div>
+      <div class="lbl">Avg Turns / Session</div>
+      <div class="desc">Average number of back-and-forth exchanges per conversation</div>
+    </div>
+    <div class="kpi blue">
+      <div class="val" id="kAvgCit">—</div>
+      <div class="lbl">Citations / Session</div>
+      <div class="desc">Avg distinct knowledge articles or doc links the Agent referenced per session</div>
+    </div>
+  </div>
+
+  <!-- Unresolved breakdown -->
+  <div>
+    <div class="breakdown-header">Unresolved — Root Cause Breakdown &nbsp;<span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">Subsets of Unresolved above — a session can carry multiple tags, so counts may overlap</span></div>
+    <div class="breakdown-row">
+      <div class="kpi-sub warn">
+        <div class="val" id="kKG">—</div>
+        <div class="lbl">Knowledge Gaps</div>
+        <div class="sub" id="kKGPct"></div>
+        <div class="of-unres" id="kKGofUnres"></div>
+        <div class="desc">Agent lacked the information to answer — content or training data is missing</div>
+      </div>
+      <div class="kpi-sub">
+        <div class="val" id="kEF">—</div>
+        <div class="lbl">Engagement Failures</div>
+        <div class="sub" id="kEFPct"></div>
+        <div class="of-unres" id="kEFofUnres"></div>
+        <div class="desc">Agent had the knowledge but failed to clarify ambiguous questions or misread context</div>
+      </div>
+      <div class="kpi-sub warn">
+        <div class="val" id="kEsc">—</div>
+        <div class="lbl">Escalated</div>
+        <div class="sub" id="kEscPct"></div>
+        <div class="of-unres" id="kEscofUnres"></div>
+        <div class="desc">Session was redirected to Help or Community portals for further assistance</div>
+      </div>
+      <div class="kpi-sub">
+        <div class="val" id="kFrust">—</div>
+        <div class="lbl">Frustrated</div>
+        <div class="sub" id="kFrustPct"></div>
+        <div class="of-unres" id="kFrustofUnres"></div>
+        <div class="desc">User expressed frustration or dissatisfaction during the session</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 1: Sentiment donut + Resolution Rate by Cluster + Turns Distribution + Resolution Rate by Turns Range -->
+  <div class="chart-row chart-row-r1" style="grid-template-columns:1fr 1.6fr 1fr 1.6fr;gap:20px">
+    <div class="card">
+      <h2>Sentiment Breakdown</h2>
+      <div class="chart-wrap" style="height:200px"><canvas id="cSentiment"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Resolution Rate by Cluster <span class="tag">% resolved, top 15</span></h2>
+      <div class="chart-wrap" style="height:200px"><canvas id="cOutcome"></canvas></div>
+      <div class="chart-note">⚠️ Cluster labels are auto-generated keywords — hover a bar for the full label</div>
+    </div>
+    <div class="card">
+      <h2>Turns Distribution <span class="tag">turns per session</span></h2>
+      <div class="chart-wrap" style="height:200px"><canvas id="cTurns"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Resolution Rate by Turns Range <span class="tag">sessions + % resolved</span></h2>
+      <div class="chart-desc">Bars show session volume per range. Line shows resolution rate — fewer turns with higher resolution means efficient containment.</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="cTurnsCombo"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Weekly volume + Cluster bar -->
+  <div class="chart-row cols12">
+    <div class="card">
+      <h2>Weekly Session Volume</h2>
+      <div class="chart-wrap" style="height:200px"><canvas id="cDaily"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Sessions by Cluster <span class="tag">top 15</span></h2>
+      <div class="chart-wrap" style="height:200px"><canvas id="cCluster"></canvas></div>
+      <div class="chart-note">⚠️ Cluster labels are auto-generated keywords — hover a bar for the full label</div>
+    </div>
+  </div>
+
+  <!-- Row 3: Sentiment vs Resolution stacked + Avg Turns by Cluster -->
+  <div class="chart-row cols2">
+    <div class="card">
+      <h2>Sentiment × Resolution</h2>
+      <div class="chart-wrap" style="height:200px"><canvas id="cSentRes"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Avg Turns by Cluster <span class="tag">top 15</span></h2>
+      <div class="chart-wrap" style="height:200px"><canvas id="cClusterTurns"></canvas></div>
+      <div class="chart-note">⚠️ Cluster labels are auto-generated keywords — hover a bar for the full label</div>
+    </div>
+  </div>
+
+  <!-- Key Insights -->
+  <div class="card">
+    <h2>Key Insights</h2>
+    <p class="chart-desc">Auto-generated summary of the most significant patterns in the visible sessions. Updates when filters are applied.</p>
+    <div class="insights" id="insightChips"></div>
+  </div>
+
+  <!-- Top KB Articles -->
+  <div class="card">
+    <h2>Top Referenced KB Articles &amp; Docs <span class="tag" id="kbCount"></span></h2>
+    <div style="background:#FFF8EE;border:1px solid #FFDFA0;border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:#8A5700;line-height:1.6;">
+      ⚠️ <strong>Work in progress</strong> — Citation data has known limitations: Agentforce does not always reference the full KB article title (it may use a short contextual label, a generic placeholder like "Informatica Knowledge Base", or a raw URL). Additionally, hyperlinks are not preserved in Excel transcript exports. As a result, the same article may appear under multiple names and counts here may not reflect true reference frequency. A future update will normalise citations using improved data extraction.
+    </div>
+    <div id="kbPanel"></div>
+  </div>
+
+  <!-- Priority Actions -->
+  <div class="card">
+    <h2>Priority Actions</h2>
+    <p class="chart-desc">Data-driven recommendations based on current session metrics. Thresholds trigger automatically — Critical items need immediate attention, Monitor items need tracking.</p>
+    <div class="priority-list" id="priorityList"></div>
+  </div>
+
+  <!-- Detail Table -->
+  <div class="card">
+    <h2>Session Detail <span class="tag" id="tableCount"></span></h2>
+    <div class="tabs" id="mainTabs">
+      <div class="tab active" onclick="switchTab('all')">All Sessions</div>
+      <div class="tab" onclick="switchTab('neg')">Negative</div>
+      <div class="tab" onclick="switchTab('unres')">Unresolved</div>
+      <div class="tab" onclick="switchTab('nocit')">Zero Citations</div>
+    </div>
+    <div class="subtabs" id="subTabs">
+      <span class="subtabs-label">Drill down →</span>
+      <div class="subtab" onclick="switchSubTab('unres')">All Unresolved</div>
+      <div class="subtab" onclick="switchSubTab('kg')">Knowledge Gaps</div>
+      <div class="subtab" onclick="switchSubTab('ef')">Eng. Failures</div>
+      <div class="subtab" onclick="switchSubTab('esc')">Escalated</div>
+      <div class="subtab" onclick="switchSubTab('frust')">Frustrated</div>
+    </div>
+    <div class="table-wrap">
+      <table id="detailTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable('num')">#<span class="sort-icon"></span></th>
+            <th onclick="sortTable('date')">Date<span class="sort-icon"></span></th>
+            <th onclick="sortTable('cluster')">Cluster<span class="sort-icon"></span></th>
+            <th onclick="sortTable('sentiment')">Sentiment<span class="sort-icon"></span></th>
+            <th onclick="sortTable('exchanges')">Turns<span class="sort-icon"></span></th>
+            <th onclick="sortTable('resolved')">Resolved<span class="sort-icon"></span></th>
+            <th onclick="sortTable('kg')">Know Gap<span class="sort-icon"></span></th>
+            <th onclick="sortTable('ef')">Eng. Fail<span class="sort-icon"></span></th>
+            <th onclick="sortTable('ack')">User Ack<span class="sort-icon"></span></th>
+            <th onclick="sortTable('escalated')">Escalated<span class="sort-icon"></span></th>
+            <th onclick="sortTable('frustrated')">Frustrated<span class="sort-icon"></span></th>
+            <th>Top Utterance</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<footer><strong>Agentforce Conversation Analysis</strong> &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; AI-classified from 92 chat transcripts &nbsp;·&nbsp; Informatica Internal</footer>
+
+<script>
+const RAW = [{"num":1,"date":"2026-03-25","cluster":"lt_quot_api_flow_id","sentiment":"Neutral","guestMsgs":7,"afMsgs":9,"exchanges":7,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"agent group id ragent group name secureagentgroupagent name aedsvrscmagent id rtask name be zd sap...","reason":"The agent successfully analyzed the error logs, identified the root cause (Sorted Input not enabled on jnr_02 joiner transformation), provided clear resolution steps, and explained the concept of active transformations when the user asked.","citation_list":["Informatica Knowledge Base","Informatica Community"]},{"num":2,"date":"2026-03-24","cluster":"lt_quot_api_flow_id","sentiment":"Neutral","guestMsgs":4,"afMsgs":6,"exchanges":4,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":3,"ef":false,"utterance":"at cominfaratdbmiadapterscommonquerybasedcdcprocessorquerybasedcdcprocessorrun querybasedcdcprocessorjava...","reason":"The agent provided generic troubleshooting steps but could not specifically diagnose the java.nio.BufferOverflowException in the CDC incremental load context for SAP OData V2 on RISE, and the issue remained unresolved with the user providing detailed logs seeking deeper analysis.","citation_list":["SAP OData V2 Connectorのガイドライン","SAP OData V2 Connectorの接続設定","リリースノート"]},{"num":3,"date":"2026-03-05","cluster":"lt_quot_api_flow_id","sentiment":"Neutral","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":11,"ef":false,"utterance":"bitte zeige mir die knowledge base artikeln die ueber cx sy dynamic osql syntax erzaehlen","reason":"The agent successfully answered all three user questions with relevant, detailed responses and cited specific knowledge base articles for each query about the TABLE_READER_Addon and CX_SY_DYNAMIC_OSQL_SYNTAX errors.","citation_list":["Install transport files to read from an SAP table","ERROR: \"CX_SY_DYNAMIC_OSQL_SYNTAX\" exception during query processing in CDI","ERROR: \"CX_SY_DYNAMIC_OSQL_SYNTAX\" Exception During Query Processing Using SAP Table Connector When Filter Condition Includes CAST Function","ERROR: \"CX_SY_DYNAMIC_OSQL_SYNTAX\" when Using Advanced Filter on Date Type Data in SAP Table Connector (Cloud Data Integration)","ERROR: \"An exception with the type CX_SY_DYNAMIC_OSQL_SYNTAX occurred\" while running the SAP table reader mapping in IICS with date filter","ERROR: \"An exception with the type CX_SY_DYNAMIC_OSQL_SYNTAX occurred, but was neither handled locally, nor declared in a RAISING clause\" while reading SAP table data having apostrophe","ERROR: \"An exception with the type CX_SY_DYNAMIC_OSQL_SYNTAX occurred, but was neither handled locally, nor declared in a RAISING clause\" running IICS mapping with a filter on a different source SAP table","ERROR: Views With Parameters requires Strict SQL Transports occurs when importing a SAP CDS view with Mandatory Parameters as a source in CDI mapping","Transport installation fails with ERROR: Program /INFADI/SAPLTBLRDR, include /INFADI/LTBLRDRU09: Syntax error in line 000054"]},{"num":4,"date":"2026-03-31","cluster":"lt_quot_api_flow_id","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"dqscheduler worker error cominfaproductsdqagentscorecomputationresultprocessor...","reason":"The agent provided a detailed, relevant troubleshooting response to the NullPointerException DQ Engine error with actionable steps and cited two knowledge articles, and the user did not express dissatisfaction.","citation_list":["ERROR: DqJob Check failed due to Dq Engine error","Steps to resolve invalid rules in DQ Jobs"]},{"num":5,"date":"2026-03-17","cluster":"page_login_redirect_salesforce_thing","sentiment":"Neutral","guestMsgs":13,"afMsgs":13,"exchanges":8,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":2,"ef":false,"utterance":"say this be my url then what should be the login url i need to use in code","reason":"The agent successfully answered all three of the user's questions: providing the API endpoints and Python code for fetching failed jobs, explaining that the login URL varies by region, and correctly deriving the specific login URL from the user's provided IICS instance URL.","citation_list":["HOW TO: Create IICS Dashboards for Job Metrics for last 24 hours","Download, Install and Register Secure Agent using IICS Rest API"]},{"num":6,"date":"2026-03-17","cluster":"limit_error_apex_increase_need","sentiment":"Neutral","guestMsgs":4,"afMsgs":6,"exchanges":4,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":true,"citations":1,"ef":true,"utterance":"do we have any limit spcific","reason":"The agent initially answered about Salesforce Bulk API instead of P360, and when corrected, admitted it had no specific row limit data for P360's bulk insert API, leaving the user's question unresolved with a redirect to support.","citation_list":["Salesforce Bulk API in mappings and mapping tasks"]},{"num":7,"date":"2026-03-04","cluster":"limit_error_apex_increase_need","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":5,"ef":false,"utterance":"provide information about possible limit if exist for record in process object asset in cai","reason":"The agent provided a comprehensive, structured answer covering multiple limit types for Process Object assets in CAI with specific citations, and the user did not express any dissatisfaction or follow-up questions.","citation_list":["Count the Number of Executions in a CAI Process","ConcurrentPerOrgLongTxn Limit Exceeded","Request Entity Too Large Error","Too Many Nested Function Calls Error","Mass Deletion of CAI Assets"]},{"num":8,"date":"2026-03-04","cluster":"limit_error_apex_increase_need","sentiment":"Neutral","guestMsgs":6,"afMsgs":8,"exchanges":6,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":8,"ef":false,"utterance":"wait for consumer to free buff block please increase the dtm buff pool size","reason":"The agent successfully answered all three user questions about DTM buffer issues, WRT_8165 errors, and block size recommendations for a 1GB DTM with relevant and detailed responses.","citation_list":["CDGC Troubleshooting Guide for Data Quality","ERROR: Waiting for consumer to free buffer block in CDI","FAQ: DTM Buffer Size for Bulk Load","WRT_8165 - TIMEOUT_BASED_COMMIT_POINT","Troubleshooting WRT_8165 Related Issues","ERROR: WRITER_1_*_1 WRT_8165 TIMEOUT BASED COMMIT POINT","DTM Buffer Size and Block Size Guidelines","FAQ: DTM Buffer Size for Bulk Load"]},{"num":9,"date":"2026-03-12","cluster":"limit_error_apex_increase_need","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"what be the maximum value for getlist limit","reason":"The agent provided a complete and specific answer about the GETLIST_LIMIT parameter in MDM, including the default value (200), maximum value (5999), and guidance for higher values.","citation_list":["Informatica Knowledge Base article"]},{"num":10,"date":"2026-03-08","cluster":"uat_environment_production_test_access","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"how informatica be segrigating uat and production","reason":"The agent explicitly stated the information was not available in its retrieved data and could only offer two vague, non-specific resource references rather than a concrete answer about UAT and production environment segregation.","citation_list":["Informatica Best Practices","Informatica Resources"]},{"num":11,"date":"2026-03-30","cluster":"uat_environment_production_test_access","sentiment":"Neutral","guestMsgs":11,"afMsgs":12,"exchanges":11,"resolved":false,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":3,"ef":false,"utterance":"okay under explore uat taskflows be where this task reside and i have diff env with diff name...","reason":"The transcript is truncated mid-sentence as the user was showing a failed curl command output, so the issue was not yet resolved, but the agent was engaging appropriately and progressively guiding the user through the API steps.","citation_list":["HOW TO: Retrieve Metadata for Cloud Data Quality Assets Using REST API","FAQ: What is the duration of icSessionId in IICS?","HOW TO: Fetch the transformation metadata details such as transformation name/label from a Mapping Task in IICS"]},{"num":12,"date":"2026-03-12","cluster":"log_need_check_want_like","sentiment":"Neutral","guestMsgs":8,"afMsgs":10,"exchanges":8,"resolved":true,"kg":false,"ack":true,"frustrated":false,"escalated":false,"citations":4,"ef":false,"utterance":"greeting again do you happen to know why our database ingestion and replication job be try to read a redo log...","reason":"The agent successfully answered all Informatica-related questions with relevant, detailed responses and appropriate citations, while correctly deflecting out-of-scope requests like pirate language roleplay.","citation_list":["OCI Path Configuration","Monitoring All Ingestion and Replication Jobs","Monitoring Your Ingestion and Replication Jobs","Oracle Log Access Methods for CDC"]},{"num":13,"date":"2026-03-23","cluster":"log_need_check_want_like","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"how do i check in cai if a id be allready in a log table","reason":"The agent provided complete, relevant answers to both questions about scheduling a CAI process every 5 minutes and checking for an ID in a log table, citing specific documentation for each.","citation_list":["FAQ: Can you schedule a process daily with frequency in Cloud Application Integration (CAI)?","HOW TO: Handle duplicate Values in Cloud Application Integration Process"]},{"num":14,"date":"2026-03-02","cluster":"log_need_check_want_like","sentiment":"Negative","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":4,"ef":false,"utterance":"how do i find where the infaagentlog file be locate","reason":"The agent provided comprehensive troubleshooting steps for the Secure Agent dropdown issue and correctly answered the follow-up question about the infaagent.log file location, with the user not expressing any dissatisfaction before the session ended.","citation_list":["No Secure Agent Shows Up in Dropdown","FAQ: Secure Agent Not Listed in Dropdown","Informatica Knowledge Base","Informatica Documentation"]},{"num":15,"date":"2026-03-06","cluster":"log_need_check_want_like","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":3,"ef":false,"utterance":"how to disable snoop log","reason":"The agent provided a complete and relevant answer on how to disable snoop logging, including step-by-step guidance and three named knowledge base articles as references.","citation_list":["HOW TO: Enable/Disable JDBC spy logging","HOW TO: Configure DataDirect Snoop log in Informatica Cloud","What, Why, and How. All about Datadirect Snoop Logging in IICS"]},{"num":16,"date":"2026-03-02","cluster":"log_need_check_want_like","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"how to download process log","reason":"The agent provided a clear, step-by-step answer on how to download a process log for a taskflow in Informatica Cloud Data Integration, including a named documentation reference.","citation_list":["Downloading a Taskflow Log File"]},{"num":17,"date":"2026-03-03","cluster":"record_create_need_im_issue","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":8,"ef":false,"utterance":"be there any table to store process record discard record while worflow run","reason":"The agent provided relevant, multi-product answers to both questions about storing record history and tracking processed/discarded records during workflow execution, with supporting citations for each response.","citation_list":["DBMI Job fails when target custom property 'writerUseHistoryTable' is set","1.02 Tracking Dimension History","FAQs on Audit/History data cleanup in MDM","HOW TO: Purge the records from the History Database","Bad Records Table documentation","Issues Table documentation","Exception Workflow documentation","Workflow Task Tables documentation"]},{"num":18,"date":"2026-03-05","cluster":"record_create_need_im_issue","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":0,"ef":false,"utterance":"get all record that automergein mdm","reason":"The agent provided a comprehensive multi-point answer covering automerge behavior in MDM, though the cited links were not explicitly named or titled (only referenced generically as 'here'), and the user did not follow up to indicate dissatisfaction.","citation_list":[]},{"num":19,"date":"2026-03-27","cluster":"record_create_need_im_issue","sentiment":"Neutral","guestMsgs":3,"afMsgs":4,"exchanges":3,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":0,"ef":false,"utterance":"how do i find pend record in mdm mde","reason":"The agent provided detailed, relevant answers to both questions about finding pending records in MDM MDE and using SQL/API to query recordState, though it referenced knowledge articles generically without citing specific titles or URLs.","citation_list":[]},{"num":20,"date":"2026-03-19","cluster":"record_create_need_im_issue","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":5,"ef":false,"utterance":"how do i set a mdm record so that it be no long pend","reason":"The agent provided comprehensive, relevant answers to both questions about resolving MDM records stuck in pending state following ActiveVOS task faults, covering multiple scenarios with actionable steps and citing specific knowledge articles.","citation_list":["ActiveVOS task fault resolution","Handling orphaned and faulted tasks","Getting ROWID_OBJECT of faulted tasks","Promoting Pending Records","Using BES REST API for Pending Records"]},{"num":21,"date":"2026-03-05","cluster":"reset_password","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":3,"ef":false,"utterance":"how do i reset my password","reason":"The agent provided a complete multi-product answer covering general password reset, CDGC, and EDC scenarios with relevant steps and citations, and the user did not express any dissatisfaction.","citation_list":["Resetting a Password documentation","this article (CDGC forgot password)","this guide (EDC MetaDex password reset)"]},{"num":22,"date":"2026-03-05","cluster":"reset_password","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":3,"ef":false,"utterance":"how dod i reset my password","reason":"The agent provided a complete, multi-product password reset guide with specific steps and named documentation references, and the user ended the session without expressing any dissatisfaction.","citation_list":["Resetting a Password","Resetting the Native User Login Password for CDGC","Reset Password for Metadex Domain Users"]},{"num":23,"date":"2026-03-06","cluster":"reset_password","sentiment":"Neutral","guestMsgs":6,"afMsgs":8,"exchanges":6,"resolved":false,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":11,"ef":true,"utterance":"how to reset password","reason":"When the user asked 'how to reset password' (after the Slack clarification made clear they meant an Informatica password), the agent repeatedly gave a generic deflection instead of providing relevant Informatica password reset instructions, constituting an engagement failure on a resolvable question.","citation_list":["Setting Up ActiveMQ Based JMS Messaging in Informatica Cloud Application Integration","Setting Up Informatica Developer","Using Informatica Administrator","Installing the Informatica Connector Toolkit Overview","HOW TO: Setup Teradata ODBC Connection to Informatica Cloud Using Linux Agent","Configuring Email Notifications","Configuring SMTP Settings","Configuring Email on UNIX","Configuring Email Notifications for Your Organization","HOW TO: Configure Email Option in Axon","Configuring SMTP on Windows"]},{"num":24,"date":"2026-03-04","cluster":"reset_password","sentiment":"Neutral","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":false,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":0,"ef":true,"utterance":"i forget my password how can i reset it","reason":"The agent deflected the first question about Salesforce product value with a hard scope redirect instead of explaining how Informatica integrates with or complements Salesforce products, and while it referenced documentation guides and links in subsequent answers, none were explicitly named or cited as distinct sources.","citation_list":[]},{"num":25,"date":"2026-03-11","cluster":"reset_password","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":0,"ef":false,"utterance":"mdm reset cmx system password","reason":"The agent provided a detailed, multi-scenario answer covering how to reset the cmx_system password in Informatica MDM, though it referenced 'Informatica Knowledge Base Article' generically without specific article titles or URLs.","citation_list":[]},{"num":26,"date":"2026-03-23","cluster":"email_account_trailhead_change_address","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":true,"escalated":true,"citations":1,"ef":false,"utterance":"hello i create free trail account today and i have question on this free trail account whom should i send a mail","reason":"The agent appropriately directed the user to Informatica's official contact page for trial account support, which is the correct response when the user cannot reach the activation email address.","citation_list":["https://www.informatica.com/services-and-training/customer-success-services/contact-us.html"]},{"num":27,"date":"2026-03-27","cluster":"ticket_support_create_need","sentiment":"Neutral","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":2,"ef":false,"utterance":"need to create a support ticket","reason":"The agent successfully provided step-by-step instructions for creating a support ticket and supplied the Informatica Support Portal URL, fully addressing both of the user's requests.","citation_list":["How to open a technical support ticket for a FEDRAMP Informatica Org","Informatica Support Portal"]},{"num":28,"date":"2026-03-31","cluster":"domain_add_custom_need_use","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":false,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":0,"ef":true,"utterance":"can a subdomain contain another subdomain","reason":"The agent deflected the question about subdomains with a generic scope redirect instead of asking a clarifying question to determine which Informatica product context the user meant (e.g., MDM, IDMC, etc.).","citation_list":[]},{"num":29,"date":"2026-03-24","cluster":"domain_add_custom_need_use","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":3,"ef":false,"utterance":"pcsf cannot connect to domain domain to look up service coreservices usermangementservice","reason":"The agent provided a comprehensive response covering common causes and resolutions for the PCSF_46008 error, citing three knowledge articles, and the user did not follow up with further issues.","citation_list":["Error: PCSF_46008 Cannot connect to domain","Certificate Issues in CDI for PowerCenter","Domain Connection Error"]},{"num":30,"date":"2026-03-16","cluster":"pause_process_stop_step_wait","sentiment":"Neutral","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":3,"ef":false,"utterance":"avast matey how do i tell if a cdir job that have be on unloading stage for minute be just spin or actually doing something","reason":"The agent successfully answered all three of the user's questions about diagnosing a stuck CDIR unloading job, explaining the unloading stage, and identifying the correct process for stack trace collection, with relevant citations throughout.","citation_list":["Database ingestion and replication job details","Application ingestion and replication job details","HOW TO: Collect stack traces from a Database Ingestion job process?"]},{"num":31,"date":"2026-03-04","cluster":"pause_process_stop_step_wait","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"be dis application be undeployed when dis be move to another node","reason":"The agent provided a comprehensive, structured answer covering multiple scenarios of DIS application behavior during node migration, and the user did not express dissatisfaction or follow up with further questions.","citation_list":["How to undeploy applications","DIS configuration and migration issues"]},{"num":32,"date":"2026-03-04","cluster":"pause_process_stop_step_wait","sentiment":"Neutral","guestMsgs":7,"afMsgs":9,"exchanges":7,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":3,"ef":false,"utterance":"be it correct to understand that the method describe in the answer cannot pause the operation of the source transformation","reason":"The agent engaged appropriately at each step but lacked definitive knowledge about how to successfully execute DBMS_LOCK.SLEEP in CDI's Pre-SQL, and the transcript was cut off mid-response while attempting to provide a workaround for the final error, leaving the user's issue unresolved.","citation_list":["Informatica Knowledge Base Article","Pre-SQL の詳細 (https://knowledge.informatica.com/s/article/FAQ-Pre-Sql-Query-Run-working-on-the-target-in-IICS?language=en_US)","Java Transformation を使用した遅延の実現 (https://knowledge.informatica.com/s/article/Working-with-JTX-to-add-delay-in-execution?language=en_US)"]},{"num":33,"date":"2026-03-17","cluster":"pause_process_stop_step_wait","sentiment":"Negative","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":false,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":5,"ef":true,"utterance":"cai process be get stick in run state frequently","reason":"The agent had relevant knowledge but failed to engage meaningfully when the user repeated the same issue — it simply repeated the same list of possible causes without asking clarifying questions to narrow down the specific problem, and the user left without resolution.","citation_list":["Process Server stuck in \"Starting Up\" state in CAI","Process Server stuck in \"Restart Required\" state in CAI","ERROR: One of the paths in Parallel Path is not getting initiated","ERROR: \"Status script return code: EXITED_NONZERO\" while Process-engine restarts frequently in CAI","The CAI process randomly goes into faulted state"]},{"num":34,"date":"2026-03-10","cluster":"attachment_email_file_send_add","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":5,"ef":false,"utterance":"my question be related to informaticas email attachment feature with json format","reason":"The agent provided a comprehensive multi-resource answer covering JSON formatting and email attachment handling across several Informatica products, and the user did not express any dissatisfaction or follow-up indicating unresolved issues.","citation_list":["HOW TO: Convert a relational input to JSON format using Informatica Developer Client","Output Tab","Is it possible to send email notifications with attachments in IDQ?","Informatica Cloud JSON Target Connector Guide","ERROR: API Response is appearing as an attachment in CAI service connector"]},{"num":35,"date":"2026-03-27","cluster":"quot_error_invalid_descriptionquot_grantquot","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"consoleagentmanagersh configureproxyinfaagentproxypassworddevice","reason":"The agent provided a detailed explanation of why InfaAgent.ProxyPasswordDevice changes automatically when updating proxy settings via consoleAgentManager.sh, covering encryption, proxy.ini behavior, and troubleshooting steps, with a relevant knowledge article citation.","citation_list":["Proxy Port gets changed to port 80 in proxy.ini while configuring Secure Agent with proxy in IICS"]},{"num":36,"date":"2026-03-03","cluster":"quot_error_invalid_descriptionquot_grantquot","sentiment":"Neutral","guestMsgs":17,"afMsgs":19,"exchanges":15,"resolved":false,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":1,"ef":false,"utterance":"mam taki error message statuscode tokenparseerror unauthorizedquot...","reason":"The conversation was cut off mid-response while the agent was answering the user's last question about the avLicense file location on the Secure Agent, so the issue remains unresolved but the agent was actively engaging throughout.","citation_list":["FAQ: How to invoke Real time Address Verification API in IDMC?"]},{"num":37,"date":"2026-03-27","cluster":"quot_error_invalid_descriptionquot_grantquot","sentiment":"Neutral","guestMsgs":5,"afMsgs":7,"exchanges":5,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":3,"ef":false,"utterance":"proxypassworddeviceproxypassword","reason":"The agent successfully answered all user questions about ProxyPasswordDevice behavior, Linux password encryption commands, consoleAgentManager.sh proxy configuration, and the difference between ProxyPasswordDevice and ProxyPassword, with relevant citations throughout.","citation_list":["Failure while trying to establish connection to proxy service reason (HTTP/1.1 403 Forbidden)","Encrypting a password on Linux","Configure proxy server settings through the shell command"]},{"num":38,"date":"2026-03-03","cluster":"quot_error_invalid_descriptionquot_grantquot","sentiment":"Negative","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":3,"ef":false,"utterance":"the test connection for cdi sfdc dev fail with invalid operation exception","reason":"The agent correctly identified the SOAP API login disabled error as a Salesforce configuration issue and provided relevant, actionable troubleshooting steps including enabling SOAP API login, verifying user profile API access, and checking org settings.","citation_list":["Salesforce Test Connection Failure","LoginFault Error: Cannot Log in from Current Domain","SOAP API Login Disabled"]},{"num":39,"date":"2026-03-20","cluster":"delete_org_want_organization_production","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":6,"ef":false,"utterance":"help me with the step to decommission or delete informatica edc from the domain","reason":"The agent provided a comprehensive, step-by-step answer covering all aspects of decommissioning/deleting Informatica EDC from the domain, with multiple referenced sources, and the user did not express any dissatisfaction.","citation_list":["Shut down the Informatica domain","Steps to shutdown EDC domain","How to re-define or re-create an existing node in a domain","Bulk delete Data Domains and Data Domain Groups","Clean up EDC environment by deleting all resources","Deleting a domain"]},{"num":40,"date":"2026-03-27","cluster":"delete_org_want_organization_production","sentiment":"Neutral","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":13,"ef":false,"utterance":"how can i perform tomcat cleanup for informatica service","reason":"The session was partially resolved — SSL and Tomcat questions were answered well, but the agent explicitly admitted it could not find the supported PostgreSQL versions for Database Ingestion and Replication targets, representing a knowledge gap for that specific question.","citation_list":["Troubleshooting Certificate-related issues with SSL-enabled Hadoop Clusters in DEI","ERROR: javax.net.ssl.SSLHandshakeException: PKIX path building failed","ERROR: SSLHandshakeException when IICS task fails during runtime","PostgreSQL Source and Databricks Target","PostgreSQL Source and Google BigQuery Target","PostgreSQL Source and Amazon Redshift Target","PostgreSQL Source and Microsoft Azure Synapse Analytics Target","PostgreSQL Source and Snowflake Target","PostgreSQL Source and Microsoft SQL Server Target","PostgreSQL Source and Oracle Target","PostgreSQL Source and PostgreSQL Target","PostgreSQL Target Properties","HOW TO: Perform Tomcat cleanup for Informatica Services"]},{"num":41,"date":"2026-03-27","cluster":"delete_org_want_organization_production","sentiment":"Neutral","guestMsgs":1,"afMsgs":2,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"how to delete all project which include map and map task and dependency via rest api","reason":"The agent provided a complete, structured answer with REST API endpoints and steps for deleting projects, mappings, mapping tasks, and dependencies in IICS, along with relevant citations.","citation_list":["How to delete projects and their dependencies in IICS","Deleting a project"]},{"num":42,"date":"2026-03-11","cluster":"delete_org_want_organization_production","sentiment":"Neutral","guestMsgs":4,"afMsgs":6,"exchanges":4,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":9,"ef":false,"utterance":"remove cdi pc related result from the answer","reason":"The agent successfully answered all three questions with relevant, detailed responses and appropriate citations, and attempted to refine results when the user requested CDI-PC content be excluded.","citation_list":["Java Heap Space and DTM Crash During Large Response Processing","Database Ingestion Service Properties","How is CPU and memory usage calculated in Operational Insights?","Monitoring a Mapping Task","CDI-PC Session and Workflow Log Events","HOW TO: Monitor Memory and Heap Size in Informatica Developer","Using a Filter Transformation","Filter Transformation Overview","Steps to Create a Filter Transformation"]},{"num":43,"date":"2026-03-26","cluster":"delete_org_want_organization_production","sentiment":"Negative","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":9,"ef":false,"utterance":"we be delete the stakeholder from ui and template it be show a delete but reappear again","reason":"The agent provided detailed, relevant troubleshooting steps with specific article citations for both user issues — the bulk import error in CDGC and the stakeholder reappearing after deletion — covering multiple scenarios and resolutions comprehensively.","citation_list":["Imported file contains empty values","File spreadsheet downloaded when the import file upload failed","Primary Data Element and Existing Primary Data Element should belong to the same catalog source","View error messages while uploading the Model file","CDGC Troubleshooting Guide for Bulk Import","CDGC Troubleshooting Guide for Export Issues","FAQ: Why Stakeholders Deletion using Bulk Import is not working in CDGC?","FAQ: Why roles are greyed out with warning symbol in the Stakeholder Roles tab in Access Control in MCC?","HOW TO: Bulk delete/remove stakeholders in CDGC","Error: \"Cannot find 'username (Deleted)' stakeholder\" during bulk reimport in CDGC","ERROR: \"Multiple stakeholders are retrieved using '' stakeholder\""]},{"num":44,"date":"2026-03-02","cluster":"version","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":3,"ef":false,"utterance":"for version","reason":"The agent provided a complete resolution for Data Archive 6.4 but explicitly lacked the knowledge to confirm whether the same steps apply to version 6.5.1, redirecting the user to external resources.","citation_list":["Knowledge Base article (Data Archive 6.4 - No global web.xml found)","https://knowledge.informatica.com/s/global-search/%20?language=en_US","https://network.informatica.com/s/topiccatalog"]},{"num":45,"date":"2026-03-30","cluster":"expire_org_developer_need_code","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":3,"ef":false,"utterance":"any end of life date for customer for salesforce","reason":"The agent explicitly stated it could not find a specific end-of-life date for Customer 360 for Salesforce, indicating a genuine knowledge gap, and only offered tangentially related resources without answering the user's direct question.","citation_list":["End of Life Announcement for Visual Analytics Module Add-On and Data Quality Dashboard for Customer 360 Insights","The 6.60 Spring 2019 Release for Cloud MDM - Customer 360 for Salesforce","Customer 360 Winter '22 Release 7.230"]},{"num":46,"date":"2026-03-04","cluster":"expire_org_developer_need_code","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":true,"citations":2,"ef":false,"utterance":"i have a additional question the expiration time of a json web token jwt be measure in minute the default expiration time","reason":"The agent could not provide verified documentation references for the specific range values (1–259,200 minutes) and the drop-down menu behavior, admitted the 180-day maximum detail lacked a clear documentation source, and the user's follow-up questions about where exactly this information appears in the documentation were not satisfactorily resolved.","citation_list":["https://knowledge.informatica.com/s/article/JWT-Support?language=en_US&type=external","JSON Web Token Expiration"]},{"num":47,"date":"2026-03-16","cluster":"expire_org_developer_need_code","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"my cdi license have be expire","reason":"The agent gave instructions relevant to CDQ/address verification license renewal rather than Cloud Data Integration (CDI) license expiry, suggesting a knowledge gap on CDI-specific license renewal, and the user did not confirm resolution before the session ended.","citation_list":["Address verification library error (12000)","How to extend the address verifier license in CDQ"]},{"num":48,"date":"2026-03-30","cluster":"expire_org_developer_need_code","sentiment":"Neutral","guestMsgs":2,"afMsgs":3,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":2,"ef":false,"utterance":"step to take after license expiration","reason":"The agent provided a comprehensive, structured answer covering license expiration impacts, review steps, extension process, sub-organization management, and license key updates with relevant references.","citation_list":["How to update license keys","License Expiration Documentation"]},{"num":49,"date":"2026-03-24","cluster":"work_try_ths_stil_actually","sentiment":"Negative","guestMsgs":6,"afMsgs":8,"exchanges":5,"resolved":true,"kg":false,"ack":false,"frustrated":true,"escalated":false,"citations":3,"ef":false,"utterance":"this be not work","reason":"The agent progressively answered all three user questions about generating error logs at S3, where to specify the S3 path, and whether error files are generated on warnings, providing relevant and detailed responses with citations.","citation_list":["Success and Error Files","Error log or bad file not generated for Redshift target in IICS","HOW TO: Generate error files for a Mapping Task"]},{"num":50,"date":"2026-03-27","cluster":"chat_open_create_access_transfer","sentiment":"Neutral","guestMsgs":6,"afMsgs":8,"exchanges":6,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":2,"ef":false,"utterance":"write a python script for build a chat application","reason":"The agent provided a comprehensive and relevant answer covering all five aspects of the user's question about implementing loops in PowerCenter workflows, including native support limitations, available components, design patterns, restrictions, and alternatives, with supporting citations.","citation_list":["HOW TO: Implement multiple conditions of PowerCenter link task in IICS CDI Taskflow","FAQ: Can Workflow Tasks be Run in a Loop in Data Engineering Integration / Quality?"]},{"num":51,"date":"2026-03-04","cluster":"extract_data_error_custom_file","sentiment":"Negative","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":false,"kg":true,"ack":false,"frustrated":true,"escalated":false,"citations":2,"ef":false,"utterance":"fatal extract file with the same name exist in the specify path provide a different name","reason":"The agent repeatedly suggested the same REG_EXTRACT pattern that the user confirmed wasn't working, then gave up and redirected to external resources without resolving the issue, indicating a genuine knowledge gap in providing a working alternative expression.","citation_list":["https://knowledge.informatica.com/s/global-search/%20?language=en_US","https://network.informatica.com/s/topiccatalog"]},{"num":52,"date":"2026-03-06","cluster":"extract_data_error_custom_file","sentiment":"Negative","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":false,"kg":true,"ack":false,"frustrated":true,"escalated":false,"citations":2,"ef":false,"utterance":"i have source file name a test folder file abctxt i need to write expression to extract only abc from it","reason":"The agent repeatedly suggested the same REG_EXTRACT pattern that the user confirmed didn't work, then gave up and redirected to external resources without resolving the issue, indicating a genuine knowledge gap in providing a working alternative expression.","citation_list":["https://knowledge.informatica.com/s/global-search/%20?language=en_US","https://network.informatica.com/s/topiccatalog"]},{"num":53,"date":"2026-03-13","cluster":"ip_restriction_range_login_salesforce","sentiment":"Neutral","guestMsgs":2,"afMsgs":3,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"can i make api call from ip address that be not add to allow trust ip range","reason":"The agent provided a complete and relevant answer explaining that API calls from untrusted IPs will be denied, outlined steps to resolve the issue, and cited two specific knowledge resources.","citation_list":["Error: \"IP Access Denied\" while triggering taskflow API","Setting Trusted IP Ranges for an Organization"]},{"num":54,"date":"2026-03-30","cluster":"picklist_value_field_set_add","sentiment":"Negative","guestMsgs":15,"afMsgs":17,"exchanges":15,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":14,"ef":false,"utterance":"use value in decision for a any object in cai","reason":"The agent progressively narrowed its responses as the user provided more context (general → CAI → specific decision task usage), providing relevant and detailed answers with citations at each step, indicating successful resolution.","citation_list":["ERROR: \"./agent_start.sh: line 39: exitCode: command not found\"","Opening a Variable to View its Definition","Viewing Variable Properties","Reading Custom Record Standard Fields with Custom Join","Read Records by Using Multiple Sources","Run-time: Read Properties","HOW TO: Read a Variable Record Length Delimited Mainframe File","AWS Event Bridge Using IICS-CAI Orchestration","IN Function in Application Integration","IN Function in Data Integration","Taskflow Functions - IN","Decision task does not take the path as expected in CAI process","ERROR: Object ID not specified while reading data from DB in CAI"]},{"num":55,"date":"2026-03-26","cluster":"support_tableau_contact_need_reach","sentiment":"Negative","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":false,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":0,"ef":true,"utterance":"hello im the tableau public help agent - wrong Agent landed here","reason":"The agent repeatedly introduced itself as the 'Tableau Public Help Agent' while the user (apparently a test agent or misconfigured session) redirected to Informatica topics, resulting in a circular non-conversation where the agent never engaged with any actual user question and simply looped its greeting without asking a clarifying question or attempting to assist.","citation_list":[]},{"num":56,"date":"2026-03-11","cluster":"support_tableau_contact_need_reach","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"what be pre requisite for a power exchange tableau connection in power center","reason":"The agent referenced a document title but provided no actual prerequisites or substantive content, effectively giving an empty answer that failed to address the user's question about setup requirements.","citation_list":["PowerExchange for Tableau Connections"]},{"num":57,"date":"2026-03-02","cluster":"connect_unable_error_connection_try","sentiment":"Negative","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":false,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":2,"ef":true,"utterance":"connection test to postgresql fail with the error i share","reason":"The user clarified the error occurs specifically during a connection test (not data loading), but the agent repeated similar generic troubleshooting advice without addressing the specific testconnect operation context visible in the error log, and the session ended without resolution.","citation_list":["Error: No more data available to read while loading data to PostgreSQL DB in CDI","Error: Object has been closed while loading large number of records to PostgreSQL target in CDI"]},{"num":58,"date":"2026-03-15","cluster":"connect_unable_error_connection_try","sentiment":"Negative","guestMsgs":17,"afMsgs":16,"exchanges":15,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":7,"ef":false,"utterance":"helper cdc inputendpoint helper fail with exception helperisdone get throw pwxsessionexception","reason":"The agent provided relevant, structured answers to all three user questions covering GraphQL API connectivity workarounds, ISM flattening issues, and memory consumption in database ingestion tasks, with specific article references for each topic.","citation_list":["HOW TO: Generate Swagger file in IICS","Introduction to REST V2 Connector","ERROR: Hierarchy Parser unable to handle JSON Input with Mixed Structures","Data Structure Discrepancy in ISM Causing Separate Groups in CDI","Configuring a Database Ingestion and Replication Task","Troubleshooting a Database Ingestion and Replication Task","FR CCON-21392"]},{"num":59,"date":"2026-03-29","cluster":"connect_unable_error_connection_try","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":true,"escalated":false,"citations":3,"ef":false,"utterance":"i also face the same issue while click on informatica administration home page link its redirect to google","reason":"The agent provided a comprehensive, structured troubleshooting response covering HTTPS port issues, server.xml configuration, and browser settings, with three named knowledge base article references.","citation_list":["Informatica Administrator stops responding after logging in","Unable to access the Administration Console using HTTPS","Informatica Administrator Help Page does not load in Google Chrome browser"]},{"num":60,"date":"2026-03-12","cluster":"connect_unable_error_connection_try","sentiment":"Neutral","guestMsgs":7,"afMsgs":9,"exchanges":7,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":true,"citations":11,"ef":false,"utterance":"i be get and error on a redshift iics connector user revocked how can i solve it","reason":"The agent answered most questions adequately but explicitly admitted it could not find information on the CCON-95100 ticket status, leaving the user's final question unresolved due to a genuine knowledge gap.","citation_list":["CDI-PC Connectivity documentation","CDI-PC Home Page","Appendix A: CDI-PC Components","Install the CDI-PC Client guide","FAQ on IPU calculation for catalog records","FAQ on taskflow IPU calculation","Rate Cards documentation","IPU Metrics Reports page","FAQ on catalog record IPU calculation","Redshift failure scenarios","Error: Access Denied in Amazon S3 connection"]},{"num":61,"date":"2026-03-24","cluster":"connect_unable_error_connection_try","sentiment":"Negative","guestMsgs":3,"afMsgs":4,"exchanges":3,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":10,"ef":false,"utterance":"im get a timeout database error when im create a powercenter domain","reason":"The agent provided comprehensive, relevant troubleshooting guidance for both the initial timeout error and the INFASETUP_10002 error with multiple specific causes and solutions, and the user did not express dissatisfaction or further questions before the session ended.","citation_list":["Error: CNX_53101 Database connection timeout","Error: DOM_10094 during domain service startup","Session fails with REP_12400","XML Element Not Found","Premature End of File","Content Not Allowed in Prolog","Database Table Issues","Permission Denied","Knowledge Article (INFASETUP_10000/nodeoptions.xml)","Knowledge Article (Database Table Issues ORA-02449)"]},{"num":62,"date":"2026-03-18","cluster":"contact_support_salesforce_issue_ticket","sentiment":"Neutral","guestMsgs":12,"afMsgs":14,"exchanges":10,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":true,"citations":3,"ef":false,"utterance":"check license and entitlement ensure that your cdi pay as you go subscription include salesforce as a support target","reason":"The agent lacked specific knowledge on how to check licensing and entitlements for CDI Pay-As-You-Go to verify if Salesforce is an enabled target, leaving the user's final question unanswered as the transcript cuts off mid-response.","citation_list":["Why is it unable to lookup or select ContactPointEmail Salesforce object in a Mapping or DSS in CDI?","Error loading into target | Salesforce | Data not loading into Salesforce target","Error Loading into target | Salesforce | UNABLE_TO_LOCK_ROW"]},{"num":63,"date":"2026-03-25","cluster":"contact_support_salesforce_issue_ticket","sentiment":"Negative","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":false,"kg":true,"ack":true,"frustrated":true,"escalated":true,"citations":0,"ef":false,"utterance":"i reach informatica support but i get no reply","reason":"The agent provided generic troubleshooting steps and support escalation advice but lacked specific knowledge about why MDM services were disabled in the user's environment, and the user's core issue (disabled MDM services with no support response) remained unresolved.","citation_list":[]},{"num":64,"date":"2026-03-26","cluster":"contact_support_salesforce_issue_ticket","sentiment":"Neutral","guestMsgs":4,"afMsgs":6,"exchanges":4,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":4,"ef":false,"utterance":"log in to informatica network navigate to the informatica network portal ensure you have valid support contact access","reason":"The agent successfully guided the user through opening a support case and then addressed the Salesforce connector request by providing actionable steps and relevant documentation links.","citation_list":["How to open a case with Informatica Support","Informatica Support Portal","Informatica Contact Us","Installing an Add-On Connector","Configuration of Salesforce Connection"]},{"num":65,"date":"2026-03-31","cluster":"access_user_grant_need_manage","sentiment":"Neutral","guestMsgs":4,"afMsgs":6,"exchanges":4,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":3,"ef":false,"utterance":"how to split access from user to a particular project or folder in idmc","reason":"The agent provided detailed, relevant answers to all four questions asked by the user across port configuration, custom ports, adding secure agents to groups, and access splitting in IDMC, with the final response appearing truncated but still engaged correctly.","citation_list":["Configure secure communication in the domain","Configure domain settings and secure communication","Adding a Secure Agent to an Existing Group"]},{"num":66,"date":"2026-03-27","cluster":"change_update_field_need_account","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"can we use logical name in sql server connection","reason":"The agent provided a clear, structured answer explaining how logical database connections work in Informatica with relevant configuration steps and cited a documentation reference.","citation_list":["Passing a Logical Database Connection"]},{"num":67,"date":"2026-03-15","cluster":"change_update_field_need_account","sentiment":"Neutral","guestMsgs":0,"afMsgs":0,"exchanges":0,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":14,"ef":false,"utterance":"change name of the image use the names from a table use lookup","reason":"The agent provided relevant, detailed responses to all three user questions, citing multiple knowledge base articles and offering actionable resolutions including for the Lookup transformation warning.","citation_list":["HOW TO: API calls workaround through Automation API","Creating an API Operation","HOW TO: Process an Array in Cloud Application Integration","API-driven Order Processing","View Incoming API Calls","Synchronizing a REST API Request","Process Server APIs and SDKs","FAQ: Samples to use REST API Query Language for Filtering","HOW TO: Process multiple JSON files in PowerCenter","HOW TO: Parse multiple JSON files using Hierarchy Parser Transformation in IICS","Creating Process Objects from JSON Files","HOW TO: Concatenate multiple requests to call a Single CAI Process in CDI","Generating JSON Web Tokens for Multiple Managed APIs Simultaneously","Creating Process Objects from OpenAPI 3.0 Files"]},{"num":68,"date":"2026-03-02","cluster":"change_update_field_need_account","sentiment":"Neutral","guestMsgs":0,"afMsgs":0,"exchanges":0,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":14,"ef":false,"utterance":"i look for something about name convention in idmc be there anything like that some documentation","reason":"The agent provided relevant, detailed responses to all three user questions, citing multiple knowledge articles and offering actionable troubleshooting steps for each issue.","citation_list":["HOW TO: API calls workaround through Automation API","Creating an API Operation","HOW TO: Process an Array in Cloud Application Integration","API-driven Order Processing","View Incoming API Calls","Synchronizing a REST API Request","Process Server APIs and SDKs","FAQ: Samples to use REST API Query Language for Filtering","HOW TO: Process multiple JSON files in PowerCenter","HOW TO: Parse multiple JSON files using Hierarchy Parser Transformation in IICS","Creating Process Objects from JSON Files","HOW TO: Concatenate multiple requests to call a Single CAI Process in CDI","Generating JSON Web Tokens for Multiple Managed APIs Simultaneously","Creating Process Objects from OpenAPI 3.0 Files"]},{"num":69,"date":"2026-03-05","cluster":"change_update_field_need_account","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"if you override the schema name in the map detail of oracle source transformation will the override value also be reflected","reason":"The agent provided a relevant and detailed answer in Japanese explaining that the overridden schema name in Oracle Source Transformation is not automatically reflected in pre-SQL queries and that explicit specification is recommended, citing the official documentation.","citation_list":["Rules and guidelines for Oracle sources in tasks"]},{"num":70,"date":"2026-03-06","cluster":"change_update_field_need_account","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"in informatica cloud data integration in a lookup transformation can a return field be renamed within the transformation","reason":"The agent provided a complete and relevant answer explaining that Return Fields cannot be renamed directly in the Lookup transformation but can be renamed via a downstream Expression transformation, and referenced a Knowledge Base Article.","citation_list":["Knowledge Base Article (unnamed)"]},{"num":71,"date":"2026-03-04","cluster":"export_excel_report_salesforce_data","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":false,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":true,"utterance":"can you give me python code to convert rep file to excel","reason":"The user asked a generic Python coding question unrelated to Informatica products, and the agent incorrectly engaged by providing Python code and an Informatica KB citation instead of deflecting the out-of-scope request or asking a clarifying question about what Informatica product context was intended.","citation_list":["https://knowledge.informatica.com/s/article/000242888?language=en_US"]},{"num":72,"date":"2026-03-31","cluster":"setting_option_set_enable_salesforce","sentiment":"Neutral","guestMsgs":4,"afMsgs":6,"exchanges":4,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"i can t get the difference between when automatic assignment be enable or not","reason":"The transcript is cut off mid-explanation when the user asks for clarification on the difference between Automatic Assignment enabled vs. not enabled, indicating the question was not fully resolved, and the agent showed signs of contradicting itself earlier (giving two different answers), suggesting a knowledge gap on this specific CDGC feature behavior.","citation_list":["https://knowledge.informatica.com/s/article/HOW-TO-associate-Glossary-to-Data-Elements-in-CDGC-using-Bulk-Import?language=en_US&type=external"]},{"num":73,"date":"2026-03-02","cluster":"setting_option_set_enable_salesforce","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"please tell me any additional information where should i set the wallet path please tell me the specific location","reason":"The agent provided detailed, relevant answers to all seven questions about configuring the Oracle Autonomous Database connector in IDMC, covering SecureAgent group visibility, TLS vs Mutual TLS authentication, wallet path setup, object storage authentication, region display, configuration file location, and profile name settings.","citation_list":["Informatica Knowledge Base article"]},{"num":74,"date":"2026-03-26","cluster":"possible_salesforce_able_admin_yes","sentiment":"Neutral","guestMsgs":4,"afMsgs":6,"exchanges":4,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"can this be done in idmc","reason":"The agent successfully answered all three of the user's questions, providing detailed steps for foreign key profiling in CDQ, workarounds for IDMC, and a thorough explanation of unmanaged reference tables with cited sources.","citation_list":["Perform Foreign Key Profiling in Informatica Data Quality","Cannot create Lookup type of functionality between/within IDQ reference tables"]},{"num":75,"date":"2026-03-26","cluster":"url_uri_use_custom_urls","sentiment":"Neutral","guestMsgs":2,"afMsgs":3,"exchanges":2,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":true,"citations":3,"ef":false,"utterance":"be there a way or option to scan website or url in edc or metadex advance scanner","reason":"The agent did not directly answer whether EDC or Metadex can scan a website/URL, instead deflecting to unrelated Hive/HDFS scanning topics, revealing a knowledge gap on this specific capability.","citation_list":["FAQ: Does EDC Advanced Scanner support scanning of Cloudera HDFS/Hive tables?","FAQ: How will the license be monitored for advanced scanners/metadex in EDC?","FAQs on Advance scanner/Metadex Queries"]},{"num":76,"date":"2026-03-25","cluster":"url_uri_use_custom_urls","sentiment":"Negative","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":5,"ef":false,"utterance":"how to find the wsc url it be call for","reason":"The agent provided relevant troubleshooting steps for the MDM batch failure, the WSC timeout error, and began answering how to find the WSC URL, suggesting the session was on track to resolution.","citation_list":["Connection timed out after 60000 milliseconds","Set a Timeout Value While Invoking a Webservice","SSL Connect Error","article here (Authentication Failure)","article here (Configuration Issues)"]},{"num":77,"date":"2026-03-25","cluster":"url_uri_use_custom_urls","sentiment":"Neutral","guestMsgs":2,"afMsgs":0,"exchanges":0,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":true,"citations":0,"ef":false,"utterance":"how to put url encode string in custom bind grant type client credentials scope","reason":"The agent transferred the session to a human agent without providing any answer about how to use a URL-encoded string in a custom binding, indicating it lacked the knowledge to address the question.","citation_list":[]},{"num":78,"date":"2026-03-06","cluster":"url_uri_use_custom_urls","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":3,"ef":false,"utterance":"how to set up load balancer url in cleanse function","reason":"The agent provided a comprehensive multi-product answer covering CIH, MDM, PowerCenter, and CAI load balancer URL configuration, and the user did not indicate dissatisfaction or follow up with further questions.","citation_list":["MDM 9.1 Installation Guide","FAQs on Web Service Provider","Cloud Integration Hub System Properties documentation"]},{"num":79,"date":"2026-03-11","cluster":"url_uri_use_custom_urls","sentiment":"Neutral","guestMsgs":7,"afMsgs":9,"exchanges":7,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"please give me a couple of example of set the callback url etc in the other property textbox","reason":"The agent provided detailed, step-by-step instructions for configuring a Kafka app connection with SSL custom trust store and then successfully extended the answer to include OAuth 2.0 authentication when the user requested it.","citation_list":["Kafka Connection Properties documentation"]},{"num":80,"date":"2026-03-13","cluster":"issue_cause_happen_time_know","sentiment":"Negative","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"if thats the case then why my issue be random and not happen always","reason":"The agent provided detailed, relevant troubleshooting steps for the intermittent parameter file issue in PowerCenter, elaborated on point 2 when asked, and began addressing the randomness question before the transcript was truncated, indicating a successfully progressing conversation.","citation_list":["Informatica Knowledge Base Article 000238627","Informatica Knowledge Base Article 119118"]},{"num":81,"date":"2026-03-09","cluster":"delete_recover_message_deletion_yes","sentiment":"Neutral","guestMsgs":5,"afMsgs":7,"exchanges":5,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":4,"ef":false,"utterance":"be there any job in idmc that look at the active inactive delete user how often this job run","reason":"The agent provided detailed, relevant answers to all three user questions about user removal synchronization, job monitoring for user statuses, and IdP deletion effects on IDMC, with specific citations supporting each response.","citation_list":["How to delete SAML user from IDMC in a SCIM enabled environment","How to remove disabled SAML users in bulk in IDMC","FAQ: What is the difference between a disabled and a deleted user?","HOW TO: Monitor Running and Completed tasks and taskflows via REST API in IDMC?"]},{"num":82,"date":"2026-03-11","cluster":"delete_recover_message_deletion_yes","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":4,"ef":false,"utterance":"cdi pc workflow workflow manager check in delete object automatically after they be saved","reason":"The agent correctly acknowledged it could not find a matching known defect for the auto check-in failure issue and redirected the user to official support, indicating a genuine knowledge gap about whether this is a bug and its fix status.","citation_list":["Workflow Manager Options – Miscellaneous Options (docs.informatica.com)","HOW TO: Recover a deleted object from a PowerCenter versioned repository (knowledge....matica.com)","Session deletion SQL error bug article CDI-PC 202311 (knowledge....matica.com)","CDI-PC known defects list (docs.informatica.com)"]},{"num":83,"date":"2026-03-30","cluster":"delete_recover_message_deletion_yes","sentiment":"Neutral","guestMsgs":15,"afMsgs":17,"exchanges":15,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":2,"ef":false,"utterance":"how can file be delete if it be in use and lock you be provide me with a mix message","reason":"The agent successfully walked the user through a logical progression of questions about metadata XML file cleanup safety, file activity detection, and file locking behavior, providing relevant and actionable answers at each step.","citation_list":["Getting the status of a file listener","Reprocessing incrementally-loaded source files"]},{"num":84,"date":"2026-03-24","cluster":"query_error_result_run_studio","sentiment":"Negative","guestMsgs":14,"afMsgs":16,"exchanges":14,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":7,"ef":false,"utterance":"cdi pc partial error src sqlquery with datetime convert","reason":"The agent provided relevant, specific answers for each of the three CDI-PC assessment flags raised by the user, including error details, causes, resolution steps, and supporting knowledge article references.","citation_list":["Session cannot be converted automatically due to LKP_TABLENAME_OVERRIDEN","Assessment Output Files","Accessing Assessment Results","Validating Multiple Mappings","Validating Multiple Mappings (first response)","Working with Mappings","Advanced Session Properties in Mapping Tasks"]},{"num":85,"date":"2026-03-13","cluster":"query_error_result_run_studio","sentiment":"Neutral","guestMsgs":3,"afMsgs":5,"exchanges":3,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"doe sql script scanner support snowflake","reason":"The agent successfully answered all three questions about the SQL Script Scanner in CDGC, covering its functionality, supported sources, and Snowflake support specifically, with the user showing no signs of dissatisfaction.","citation_list":["Informatica Knowledge Base article"]},{"num":86,"date":"2026-03-18","cluster":"query_error_result_run_studio","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":0,"ef":false,"utterance":"how to address mdm session error especially for query run much than min","reason":"The agent provided a comprehensive multi-scenario answer addressing MDM session errors for long-running queries, but cited knowledge articles generically ('this knowledge article') without naming or linking them specifically, so they cannot be counted as distinct citations.","citation_list":[]},{"num":87,"date":"2026-03-12","cluster":"query_error_result_run_studio","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":false,"citations":10,"ef":false,"utterance":"how to pass input parameter in the sql query of a cdi map","reason":"The agent provided comprehensive, well-structured answers with multiple cited knowledge articles for both user questions about passing input parameters in CDI SQL queries and using jobInstanceId, and the session ended without any user dissatisfaction expressed.","citation_list":["HOW TO: Pass the in-out parameter from taskflow","HOW TO: Pass multiple values to the 'IN' function in filter transformation","HOW TO: Parameterize source query and override using parameter file","HOW TO: Use parameter in SQL Transformation","HOW TO: Pass Dynamic queries at runtime of the mapping","Read the job Instance Id details via Public API in SAAS","C360 SaaS - Automate Inbound integration","ERROR: \"Invalid/Default JobInstanceId is passed as runtime parameter\"","The jobInstanceId is empty or has default value in CDI","HOW TO: Ingress the data using REST V2 connector in Customer 360 SaaS"]},{"num":88,"date":"2026-03-03","cluster":"query_error_result_run_studio","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":2,"ef":false,"utterance":"how to query the sql override property in informatica powercenter","reason":"The agent provided relevant, detailed guidance on both querying SQL Overrides in PowerCenter and retrieving them from the Informatica Repository, including an example SQL query, and the user did not express dissatisfaction.","citation_list":["Product Documentation for SQL Override Query","Knowledge Base Article on SQL Overrides"]},{"num":89,"date":"2026-03-14","cluster":"create_account_new_add_need","sentiment":"Negative","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":true,"citations":0,"ef":false,"utterance":"i have select i do have account and try to create new account but start free trail account at the end be not enable","reason":"The agent provided general troubleshooting steps but could not specifically resolve why the 'Start Free Trial' button remained disabled despite all fields being filled, and the user left without confirmation of resolution; no specific knowledge articles were cited (references to 'Informatica Help Documentation' and 'Informatica Cloud Trial Registration Guide' were generic with no actual URLs or titles).","citation_list":[]},{"num":90,"date":"2026-03-04","cluster":"cloud_data_need_help_use","sentiment":"Neutral","guestMsgs":2,"afMsgs":4,"exchanges":2,"resolved":false,"kg":true,"ack":false,"frustrated":false,"escalated":false,"citations":1,"ef":false,"utterance":"can you please give me the asset type support by cloud data governance","reason":"The agent redirected to a documentation resource about automated data quality rules rather than directly answering the user's question about all asset types supported by Cloud Data Governance and Catalog, suggesting it lacked comprehensive knowledge on the topic.","citation_list":["Supported Assets for Automated Data Quality Rules"]},{"num":91,"date":"2026-03-10","cluster":"cloud_data_need_help_use","sentiment":"Positive","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":false,"kg":true,"ack":true,"frustrated":false,"escalated":true,"citations":3,"ef":false,"utterance":"dear informatica train team i recently purchase the course cloud data governance and catalog administration","reason":"The agent explicitly acknowledged it lacked specific information about the course lab credentials and redirected the user to external resources, leaving the question unresolved.","citation_list":["https://knowledge.informatica.com/s/global-search/%20?language=en_US","https://network.informatica.com/s/topiccatalog","https://www.informatica.com/services-and-training/customer-success-services/contact-us.html"]},{"num":92,"date":"2026-03-13","cluster":"cloud_data_need_help_use","sentiment":"Neutral","guestMsgs":1,"afMsgs":3,"exchanges":1,"resolved":true,"kg":false,"ack":false,"frustrated":false,"escalated":true,"citations":2,"ef":false,"utterance":"hello we cloudified our on premise hnt powercenter environment use cdi pc the application team have request snowflake","reason":"The agent provided a complete and relevant answer covering license requirements, configuration steps, and specific knowledge article references for enabling Snowflake connectivity in CDI-PC.","citation_list":["HOW TO: Connect to Snowflake using CDI-PC 2023.11","Snowflake Cloud Data Warehouse Connector Related Queries"]}];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let activeTab = 'all';
+let sortCol = 'num', sortDir = 1;
+let charts = {};
+
+// ── Filter helpers ─────────────────────────────────────────────────────────────
+function getFilters() {
+  return {
+    sentiment: document.getElementById('fSentiment').value,
+    resolved:  document.getElementById('fResolved').value,
+    escalated: document.getElementById('fEscalated').value,
+    kg:        document.getElementById('fKG').value,
+    ef:        document.getElementById('fEF').value,
+    cluster:   document.getElementById('fCluster').value,
+    turnsRange: document.getElementById('fExchanges').value
+  };
+}
+
+function applyFilters(data) {
+  const f = getFilters();
+  return data.filter(r => {
+    if (f.sentiment !== 'all' && r.sentiment !== f.sentiment) return false;
+    if (f.resolved  !== 'all' && String(r.resolved)  !== f.resolved)  return false;
+    if (f.escalated !== 'all' && String(r.escalated) !== f.escalated) return false;
+    if (f.kg        !== 'all' && String(r.kg)        !== f.kg)        return false;
+    if (f.ef        !== 'all' && String(r.ef||false)  !== f.ef)        return false;
+    if (f.cluster   !== 'all' && r.cluster !== f.cluster) return false;
+    if (f.turnsRange !== 'all') {
+      const e = r.exchanges;
+      if (f.turnsRange === '0'   && e !== 0) return false;
+      if (f.turnsRange === '1'   && e !== 1) return false;
+      if (f.turnsRange === '2-3' && !(e>=2&&e<=3)) return false;
+      if (f.turnsRange === '4-6' && !(e>=4&&e<=6)) return false;
+      if (f.turnsRange === '7-10'&& !(e>=7&&e<=10)) return false;
+      if (f.turnsRange === '10+' && e<=10) return false;
+    }
+    return true;
+  });
+}
+
+function applyTab(data) {
+  switch(activeTab) {
+    case 'neg':   return data.filter(r => r.sentiment === 'Negative');
+    case 'unres': return data.filter(r => !r.resolved);
+    case 'esc':   return data.filter(r => r.escalated);
+    case 'kg':    return data.filter(r => r.kg);
+    case 'ef':    return data.filter(r => r.ef);
+    case 'frust': return data.filter(r => r.frustrated);
+    case 'nocit': return data.filter(r => (r.citations||0) === 0);
+    default:      return data;
+  }
+}
+
+function getVisible() { return applyFilters(RAW); }
+function getTableData() { return applyTab(getVisible()); }
+
+// ── Populate cluster dropdown ──────────────────────────────────────────────────
+(function populateClusters() {
+  const sel = document.getElementById('fCluster');
+  [...new Set(RAW.map(r => r.cluster))].sort().forEach(c => {
+    const o = document.createElement('option'); o.value = c; o.textContent = c.replace(/_/g,' ');
+    sel.appendChild(o);
+  });
+})();
+
+// ── Chart helpers ──────────────────────────────────────────────────────────────
+const C = { neg:'#BA0517', neu:'#0176D3', pos:'#2E844A', warn:'#FE9339', accent:'#0176D3', teal:'#06A59A', navy:'#0A2240', muted:'#747474', grid:'rgba(216,228,240,0.8)' };
+
+function mkChart(id, type, data, opts={}) {
+  const ctx = document.getElementById(id).getContext('2d');
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type, data,
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: C.muted, font:{size:11} } }, tooltip: { backgroundColor:C.navy, borderColor:'#D8E4F0', borderWidth:1, titleColor:'#fff', bodyColor:'#C9D9EF' } },
+      scales: type === 'bar' || type === 'line' ? {
+        x: { ticks:{color:C.muted,font:{size:10}}, grid:{color:C.grid} },
+        y: { ticks:{color:C.muted,font:{size:10}}, grid:{color:C.grid}, beginAtZero:true }
+      } : {},
+      ...opts
+    }
+  });
+}
+
+// ── Render all ────────────────────────────────────────────────────────────────
+function render() {
+  const vis = getVisible();
+  const n = vis.length;
+
+  // KPIs
+  const resolved   = vis.filter(r=>r.resolved).length;
+  const unresolved = n - resolved;
+  const neg        = vis.filter(r=>r.sentiment==='Negative').length;
+  const esc        = vis.filter(r=>r.escalated).length;
+  const kg         = vis.filter(r=>r.kg).length;
+  const ef         = vis.filter(r=>r.ef).length;
+  const avgEx      = n ? (vis.reduce((s,r)=>s+r.exchanges,0)/n).toFixed(1) : 0;
+  const avgCit     = n ? (vis.reduce((s,r)=>s+(r.citations||0),0)/n).toFixed(1) : '—';
+
+  const frust = vis.filter(r=>r.frustrated).length;
+
+  document.getElementById('kResolved').textContent      = resolved;
+  document.getElementById('kResolvedPct').textContent   = n ? Math.round(resolved/n*100)+'% of sessions' : '';
+  document.getElementById('kUnresolved').textContent    = unresolved;
+  document.getElementById('kUnresolvedPct').textContent = n ? Math.round(unresolved/n*100)+'% of sessions' : '';
+  document.getElementById('kAvgEx').textContent         = avgEx;
+  document.getElementById('kAvgCit').textContent        = avgCit;
+
+  // Breakdown cards — counts + % of total + % of unresolved
+  const ofU = u => unresolved ? Math.round(u/unresolved*100)+'% of unresolved' : '—';
+  document.getElementById('kKG').textContent           = kg;
+  document.getElementById('kKGPct').textContent        = n ? Math.round(kg/n*100)+'% of sessions' : '';
+  document.getElementById('kKGofUnres').textContent    = ofU(kg);
+  document.getElementById('kEF').textContent           = ef;
+  document.getElementById('kEFPct').textContent        = n ? Math.round(ef/n*100)+'% of sessions' : '';
+  document.getElementById('kEFofUnres').textContent    = ofU(ef);
+  document.getElementById('kEsc').textContent          = esc;
+  document.getElementById('kEscPct').textContent       = n ? Math.round(esc/n*100)+'% of sessions' : '';
+  document.getElementById('kEscofUnres').textContent   = ofU(esc);
+  document.getElementById('kFrust').textContent        = frust;
+  document.getElementById('kFrustPct').textContent     = n ? Math.round(frust/n*100)+'% of sessions' : '';
+  document.getElementById('kFrustofUnres').textContent = ofU(frust);
+
+  const pct = (v, total) => total ? ` (${Math.round(v/total*100)}%)` : '';
+  const axisLabel = (text) => ({ display:true, text, color:C.muted, font:{size:10} });
+
+  // Sentiment donut — % in tooltip
+  const sentCounts = {Negative:0,Neutral:0,Positive:0};
+  vis.forEach(r=>sentCounts[r.sentiment]=(sentCounts[r.sentiment]||0)+1);
+  mkChart('cSentiment','doughnut',{
+    labels:['Negative','Neutral','Positive'],
+    datasets:[{data:[sentCounts.Negative,sentCounts.Neutral,sentCounts.Positive],backgroundColor:[C.neg,C.neu,C.pos],borderWidth:0,hoverOffset:6}]
+  },{plugins:{
+    legend:{position:'bottom', labels:{color:C.muted,font:{size:11}}},
+    tooltip:{callbacks:{label: ctx => ` ${ctx.label}: ${ctx.raw}${pct(ctx.raw,n)} of sessions`}}
+  }});
+
+  // Resolution rate by cluster — % resolved, top 15 by session count
+  const ack = vis.filter(r=>r.ack).length;
+  const clRes = {};
+  vis.forEach(r=>{
+    if(!clRes[r.cluster]) clRes[r.cluster]={res:0,total:0};
+    clRes[r.cluster].total++;
+    if(r.resolved) clRes[r.cluster].res++;
+  });
+  const topClRes = Object.entries(clRes)
+    .filter(([,v])=>v.total>=2)
+    .sort((a,b)=>b[1].total-a[1].total).slice(0,15)
+    .sort((a,b)=>(a[1].res/a[1].total)-(b[1].res/b[1].total)); // sort by res rate asc so lowest is top
+  const resRates = topClRes.map(([,v])=>Math.round(v.res/v.total*100));
+  mkChart('cOutcome','bar',{
+    labels:topClRes.map(([k])=>k.replace(/_/g,' ')),
+    datasets:[{
+      data:resRates,
+      backgroundColor:resRates.map(r=>r>=70?C.pos:r>=40?C.warn:C.neg),
+      borderRadius:4, label:'Resolution rate'
+    }]
+  },{
+    indexAxis:'y',
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label: ctx => ` ${ctx.raw}% resolved (${topClRes[ctx.dataIndex][1].res} of ${topClRes[ctx.dataIndex][1].total} sessions)`}}
+    },
+    scales:{
+      x:{ ticks:{color:C.muted,font:{size:10},callback:v=>v+'%'}, grid:{color:C.grid}, beginAtZero:true, max:100,
+          title:axisLabel('% of sessions resolved (green ≥70%, orange 40–69%, red <40%)') },
+      y:{ ticks:{color:C.muted,font:{size:9}}, grid:{color:C.grid} }
+    }
+  });
+
+  // Turns distribution (original chart retained)
+  const buckets = [0,0,0,0,0,0];
+  vis.forEach(r=>{
+    if(r.exchanges===0) buckets[0]++;
+    else if(r.exchanges===1) buckets[1]++;
+    else if(r.exchanges<=3) buckets[2]++;
+    else if(r.exchanges<=6) buckets[3]++;
+    else if(r.exchanges<=10) buckets[4]++;
+    else buckets[5]++;
+  });
+  mkChart('cTurns','bar',{
+    labels:['0 (no reply)','1','2–3','4–6','7–10','10+'],
+    datasets:[{data:buckets,backgroundColor:[C.neg,C.muted,C.accent,C.pos,C.warn,C.neg],borderRadius:4,
+      label:'Sessions'}]
+  },{
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label: ctx => ` ${ctx.raw} sessions${pct(ctx.raw,n)}`}}
+    },
+    scales:{
+      x:{ ticks:{color:C.muted,font:{size:10}}, grid:{color:C.grid},
+          title:axisLabel('Number of turns per session') },
+      y:{ ticks:{color:C.muted,font:{size:10}}, grid:{color:C.grid}, beginAtZero:true,
+          title:axisLabel('Sessions') }
+    }
+  });
+
+  // Turns Distribution + Resolution Rate combo chart
+  const turnBuckets = [
+    {label:'0 (no reply)', filter:r=>r.exchanges===0},
+    {label:'1',            filter:r=>r.exchanges===1},
+    {label:'2–3',          filter:r=>r.exchanges>=2&&r.exchanges<=3},
+    {label:'4–6',          filter:r=>r.exchanges>=4&&r.exchanges<=6},
+    {label:'7–10',         filter:r=>r.exchanges>=7&&r.exchanges<=10},
+    {label:'10+',          filter:r=>r.exchanges>10},
+  ];
+  const trLabels = turnBuckets.map(b=>b.label);
+  const trCounts = turnBuckets.map(b=>vis.filter(b.filter).length);
+  const trRates  = turnBuckets.map((b,i)=>{
+    const group = vis.filter(b.filter);
+    if(!group.length) return null;
+    if(i===0) return null; // 0 exchanges = no agent reply
+    return Math.round(group.filter(r=>r.resolved).length / group.length * 100);
+  });
+  mkChart('cTurnsCombo','bar',{
+    labels: trLabels,
+    datasets:[
+      {
+        type:'bar',
+        label:'Sessions',
+        data: trCounts,
+        backgroundColor:[C.neg,C.muted,C.accent,C.pos,C.warn,C.neg],
+        borderRadius:4,
+        yAxisID:'yCount',
+        order:2
+      },
+      {
+        type:'line',
+        label:'Resolution Rate %',
+        data: trRates,
+        borderColor: C.pos,
+        backgroundColor: C.pos+'33',
+        pointBackgroundColor: trRates.map(v=>v===null?'transparent':v>=70?C.pos:v>=40?C.warn:C.neg),
+        pointRadius:5,
+        pointHoverRadius:7,
+        borderWidth:2,
+        tension:0.3,
+        yAxisID:'yRate',
+        order:1,
+        spanGaps:true
+      }
+    ]
+  },{
+    plugins:{
+      legend:{display:true, position:'top', labels:{color:C.muted, font:{size:11}, boxWidth:12,
+        filter: item => item.datasetIndex === 1
+      }},
+      tooltip:{callbacks:{
+        label: ctx => {
+          if(ctx.dataset.label==='Sessions') return ` ${ctx.raw} sessions (${Math.round(ctx.raw/n*100)}% of total)`;
+          return ctx.raw===null ? ' No data' : ` ${ctx.raw}% resolved`;
+        }
+      }}
+    },
+    scales:{
+      x:{ ticks:{color:C.muted,font:{size:10}}, grid:{color:C.grid},
+          title:axisLabel('Turns per session') },
+      yCount:{ position:'left', ticks:{color:C.muted,font:{size:10}}, grid:{color:C.grid},
+               beginAtZero:true, title:axisLabel('Sessions') },
+      yRate:{ position:'right', ticks:{color:C.muted,font:{size:10},callback:v=>v+'%'},
+              grid:{drawOnChartArea:false}, beginAtZero:true, max:100,
+              title:axisLabel('Resolution rate %') }
+    }
+  });
+
+  // Weekly session volume
+  const weekCounts = {};
+  vis.forEach(r=>{
+    const d = new Date(r.date);
+    const mon = new Date(d);
+    mon.setDate(d.getDate() - ((d.getDay()+6)%7));
+    const wk = mon.toISOString().slice(0,10);
+    weekCounts[wk] = (weekCounts[wk]||0) + 1;
+  });
+  const weeks = Object.keys(weekCounts).sort();
+  const weekLabels = weeks.map(w=>{
+    const d = new Date(w);
+    const mo = d.toLocaleString('default',{month:'short'});
+    return `${mo} W${Math.ceil(d.getDate()/7)}`;
+  });
+  mkChart('cDaily','bar',{
+    labels:weekLabels,
+    datasets:[{data:weeks.map(w=>weekCounts[w]),backgroundColor:C.accent,borderRadius:3,label:'Sessions'}]
+  },{
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label: ctx => ` ${ctx.raw} sessions this week`}}
+    },
+    scales:{
+      x:{ ticks:{color:C.muted,font:{size:10}}, grid:{color:C.grid},
+          title:axisLabel('Week (Mon – Sun)') },
+      y:{ ticks:{color:C.muted,font:{size:10}}, grid:{color:C.grid}, beginAtZero:true,
+          title:axisLabel('Number of sessions') }
+    }
+  });
+
+  // Sessions by cluster (top 15)
+  const clCounts={};
+  vis.forEach(r=>clCounts[r.cluster]=(clCounts[r.cluster]||0)+1);
+  const topCl = Object.entries(clCounts).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  mkChart('cCluster','bar',{
+    labels:topCl.map(([k])=>k.replace(/_/g,' ')),
+    datasets:[{data:topCl.map(([,v])=>v),backgroundColor:C.accent,borderRadius:3,label:'Sessions'}]
+  },{
+    indexAxis:'y',
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label: ctx => ` ${ctx.raw} sessions${pct(ctx.raw,n)} of total`}}
+    },
+    scales:{
+      x:{ ticks:{color:C.muted,font:{size:10}}, grid:{color:C.grid},
+          title:axisLabel('Number of sessions') },
+      y:{ ticks:{color:C.muted,font:{size:9}}, grid:{color:C.grid},
+          title:axisLabel('Question cluster / topic') }
+    }
+  });
+
+  // Sentiment × Resolution stacked
+  const sentGroups = {};
+  vis.forEach(r=>{
+    if(!sentGroups[r.sentiment]) sentGroups[r.sentiment]={res:0,unres:0};
+    r.resolved ? sentGroups[r.sentiment].res++ : sentGroups[r.sentiment].unres++;
+  });
+  const sentLabels = Object.keys(sentGroups);
+  mkChart('cSentRes','bar',{
+    labels:sentLabels,
+    datasets:[
+      {label:'Resolved',   data:sentLabels.map(s=>sentGroups[s].res),   backgroundColor:C.pos, borderRadius:4},
+      {label:'Unresolved', data:sentLabels.map(s=>sentGroups[s].unres), backgroundColor:C.neg, borderRadius:4}
+    ]
+  },{
+    plugins:{
+      legend:{position:'bottom', labels:{color:C.muted,font:{size:11}}},
+      tooltip:{callbacks:{label: ctx => ` ${ctx.dataset.label}: ${ctx.raw} sessions`}}
+    },
+    scales:{
+      x:{ stacked:true, ticks:{color:C.muted}, grid:{color:C.grid},
+          title:axisLabel('User sentiment during session') },
+      y:{ stacked:true, ticks:{color:C.muted}, grid:{color:C.grid}, beginAtZero:true,
+          title:axisLabel('Number of sessions') }
+    }
+  });
+
+  // Avg turns by cluster (top 15)
+  const clTurns={};
+  vis.forEach(r=>{ if(!clTurns[r.cluster]) clTurns[r.cluster]=[]; clTurns[r.cluster].push(r.exchanges); });
+  const topClT = Object.entries(clTurns)
+    .map(([k,v])=>([k, v.reduce((s,x)=>s+x,0)/v.length]))
+    .sort((a,b)=>b[1]-a[1]).slice(0,15);
+  mkChart('cClusterTurns','bar',{
+    labels:topClT.map(([k])=>k.replace(/_/g,' ')),
+    datasets:[{data:topClT.map(([,v])=>parseFloat(v.toFixed(1))),backgroundColor:C.warn,borderRadius:3,label:'Avg turns'}]
+  },{
+    indexAxis:'y',
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label: ctx => ` Avg ${ctx.raw} turns per session`}}
+    },
+    scales:{
+      x:{ ticks:{color:C.muted,font:{size:10}}, grid:{color:C.grid}, beginAtZero:true,
+          title:axisLabel('Average turns per session') },
+      y:{ ticks:{color:C.muted,font:{size:9}}, grid:{color:C.grid},
+          title:axisLabel('Question cluster / topic') }
+    }
+  });
+
+  // Insights
+  renderInsights(vis);
+
+  // Priority Actions
+  renderPriorities(vis);
+
+  // Top KB Articles
+  renderKBArticles(vis);
+
+  // Table
+  renderTable();
+}
+
+function renderInsights(vis) {
+  const n = vis.length;
+  if(!n) { document.getElementById('insightChips').innerHTML='<div style="color:var(--muted)">No data for current filters.</div>'; return; }
+  const resolved   = vis.filter(r=>r.resolved).length;
+  const unresolved = n - resolved;
+  const esc        = vis.filter(r=>r.escalated).length;
+  const kg         = vis.filter(r=>r.kg).length;
+  const ef         = vis.filter(r=>r.ef).length;
+  const neg        = vis.filter(r=>r.sentiment==='Negative').length;
+  const frust      = vis.filter(r=>r.frustrated).length;
+  const zero       = vis.filter(r=>r.exchanges===0).length;
+  const ack        = vis.filter(r=>r.ack).length;
+  const avgEx      = (vis.reduce((s,r)=>s+r.exchanges,0)/n).toFixed(1);
+  const avgCit     = (vis.reduce((s,r)=>s+(r.citations||0),0)/n).toFixed(1);
+  const hiEx       = vis.reduce((m,r)=>r.exchanges>m.exchanges?r:m, vis[0]);
+  const pct3plus   = Math.round(vis.filter(r=>r.exchanges>=3).length/n*100);
+
+  const clNeg = {};
+  vis.filter(r=>r.sentiment==='Negative').forEach(r=>clNeg[r.cluster]=(clNeg[r.cluster]||0)+1);
+  const topNegCl = Object.entries(clNeg).sort((a,b)=>b[1]-a[1])[0];
+  const multiLang = vis.filter(r=>r.utterance.match(/bitte|zeige|artikeln|taki error/i)).length;
+
+  const chips = [
+    {icon:'✅', cls:'green',  title:`${Math.round(resolved/n*100)}% Resolution Rate`, body:`${resolved} resolved, ${unresolved} unresolved out of ${n} sessions`},
+    {icon:'🔺', cls:'orange', title:`${Math.round(esc/n*100)}% Escalation Rate`, body:`${esc} sessions redirected to Help or Community portals`},
+    {icon:'🧠', cls:'',       title:`${kg} Knowledge Gaps (${Math.round(kg/n*100)}%)`, body:`Agent lacked knowledge to fully answer in ${kg} sessions`},
+    {icon:'⚠️', cls:'orange', title:`${ef} Engagement Failures (${Math.round(ef/n*100)}%)`, body:`Agent had knowledge but failed to clarify or misread context`},
+    {icon:'💬', cls:'teal',   title:`Avg ${avgEx} Turns / Session`, body:`${pct3plus}% of sessions needed 3+ back-and-forth exchanges`},
+    {icon:'📎', cls:'teal',   title:`Avg ${avgCit} Citations / Session`, body:`Knowledge article or doc references cited per session`},
+  ];
+  document.getElementById('insightChips').innerHTML = chips.map(c=>
+    `<div class="insight-chip ${c.cls}"><div class="icon">${c.icon}</div><div class="text"><strong>${c.title}</strong><span>${c.body}</span></div></div>`
+  ).join('');
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+function pill(val, trueLabel='Yes', falseLabel='No', trueClass='yes', falseClass='no') {
+  return val
+    ? `<span class="pill ${trueClass}">${trueLabel}</span>`
+    : `<span class="pill ${falseClass}">${falseLabel}</span>`;
+}
+function sentPill(s) {
+  const cls = s==='Negative'?'neg':s==='Positive'?'pos':'neu';
+  return `<span class="pill ${cls}">${s}</span>`;
+}
+
+function renderTable() {
+  const data = getTableData();
+  document.getElementById('tableCount').textContent = data.length + ' sessions';
+  const sorted = [...data].sort((a,b)=>{
+    let av=a[sortCol], bv=b[sortCol];
+    if(typeof av==='boolean') av=av?1:0, bv=bv?1:0;
+    if(typeof av==='string') return av.localeCompare(bv)*sortDir;
+    return (av-bv)*sortDir;
+  });
+
+  const colSpan = 13;
+  document.getElementById('tableBody').innerHTML = sorted.map(r=>{
+    const cats = [];
+    if(r.resolved)   cats.push('<span class="pill yes">Resolved</span>');
+    if(!r.resolved)  cats.push('<span class="pill neg">Unresolved</span>');
+    if(r.escalated)  cats.push('<span class="pill esc">Escalated</span>');
+    if(r.kg)         cats.push('<span class="pill neu">Know Gap</span>');
+    if(r.ef)         cats.push('<span class="pill neg">Eng. Fail</span>');
+    if(r.frustrated) cats.push('<span class="pill neg">Frustrated</span>');
+    const reasonSnippet = r.reason ? (r.reason.length>60 ? r.reason.slice(0,60)+'…' : r.reason) : '—';
+    const reasonFull    = (r.reason||'').replace(/"/g,'&quot;');
+    return `<tr onclick="toggleExpand(${r.num})" style="cursor:pointer">
+      <td>${r.num}</td>
+      <td>${r.date.slice(5)}</td>
+      <td><span class="cluster-tag" title="${r.cluster}">${r.cluster.replace(/_/g,' ')}</span></td>
+      <td>${sentPill(r.sentiment)}</td>
+      <td><div class="spark-bar"><div class="bar" style="width:${Math.min(r.exchanges*8,80)}px"></div><span class="val">${r.exchanges}</span></div></td>
+      <td>${pill(r.resolved)}</td>
+      <td>${pill(r.kg,'Yes','No','yes','no')}</td>
+      <td>${pill(r.ef||false,'Yes','No','neg','no')}</td>
+      <td>${pill(r.ack,'Yes','No','yes','no')}</td>
+      <td>${r.escalated?`<span class="pill esc">Yes</span>`:`<span class="pill no">No</span>`}</td>
+      <td>${pill(r.frustrated,'Yes','No','neg','no')}</td>
+      <td><span class="utterance-cell">${r.utterance}</span></td>
+      <td><span class="reason-cell">${reasonSnippet}</span></td>
+    </tr>
+    <tr id="expand-${r.num}" class="expand-row" style="display:none">
+      <td colspan="${colSpan}">
+        <div class="reason-detail">
+          <div class="ritem"><strong>Categories</strong><span>${cats.join(' ')}</span></div>
+          <div class="ritem"><strong>Citations</strong><span>${r.citations||0} knowledge article${r.citations!==1?'s':''}</span></div>
+          ${Array.isArray(r.citation_list)&&r.citation_list.length?`<div class="ritem" style="grid-column:1/-1"><strong>Articles Cited</strong><span>${r.citation_list.map(c=>`<span style="display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 7px;font-size:11px;margin:2px 4px 2px 0">${c}</span>`).join('')}</span></div>`:''}
+
+          <div class="ritem"><strong>Turns</strong><span>${r.exchanges} exchanges</span></div>
+          <div class="ritem"><strong>Sentiment</strong><span>${r.sentiment}</span></div>
+        </div>
+        <div class="reason-full"><strong style="color:var(--accent);font-style:normal">AI Analysis: </strong>${reasonFull||'No reason recorded — re-run classifier to populate.'}</div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderKBArticles(vis) {
+  const panel   = document.getElementById('kbPanel');
+  const countEl = document.getElementById('kbCount');
+
+  // Aggregate citation_list — track count, resolved, kg per article
+  const freq = {};
+  vis.forEach(r => {
+    const list = r.citation_list;
+    if (!Array.isArray(list) || !list.length) return;
+    const seen = new Set();
+    list.forEach(name => {
+      const key = name.trim();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      if (!freq[key]) freq[key] = { count:0, resolved:0, kg:0 };
+      freq[key].count++;
+      if (r.resolved) freq[key].resolved++;
+      if (r.kg)       freq[key].kg++;
+    });
+  });
+
+  const all = Object.entries(freq).sort((a,b)=>b[1].count-a[1].count);
+
+  if (!all.length) {
+    countEl.textContent = '';
+    panel.innerHTML = `<p class="kb-no-data">No citation data yet — re-run <code>classify_sessions.py</code> to populate KB article names.</p>`;
+    return;
+  }
+
+  countEl.textContent = `top 10`;
+
+  function makeTable(entries, cols) {
+    if (!entries.length) return `<p class="kb-no-data">No articles in this view.</p>`;
+    const maxCount = entries[0][1].count;
+    const rows = entries.map(([name, d], i) => {
+      const barW   = Math.round((d.count / maxCount) * 160);
+      const resRate = Math.round(d.resolved / d.count * 100);
+      const resCls  = resRate >= 60 ? 'kb-tag-res' : resRate >= 30 ? 'kb-tag-warn' : 'kb-tag-unres';
+      const kgRate  = Math.round(d.kg / d.count * 100);
+      const kgCls   = kgRate >= 50 ? 'kb-tag-unres' : kgRate > 0 ? 'kb-tag-warn' : 'kb-tag-res';
+      return `<tr>
+        <td style="color:var(--muted);font-size:11px;font-weight:700;width:24px">${i+1}</td>
+        <td class="kb-name">${name}</td>
+        <td><div class="kb-bar-wrap"><div class="kb-bar" style="width:${barW}px"></div><span class="kb-count">${d.count}</span></div></td>
+        ${cols.includes('res') ? `<td><span class="pill ${resCls}">${resRate}% resolved</span></td>` : ''}
+        ${cols.includes('kg')  ? `<td><span class="pill ${kgCls}">${d.kg} KG session${d.kg!==1?'s':''} (${kgRate}%)</span></td>` : ''}
+      </tr>`;
+    }).join('');
+    return `<table class="kb-table">
+      <thead><tr>
+        <th>#</th><th>Article / Document</th><th>Times Cited</th>
+        ${cols.includes('res') ? '<th>Resolution Rate</th>' : ''}
+        ${cols.includes('kg')  ? '<th>Cited in Knowledge Gap Sessions</th>' : ''}
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  // Tab 1 — Top 10 by frequency
+  const top10 = all.slice(0,10);
+  // Tab 2 — Resolved vs unresolved: show all, sorted by resolution rate desc
+  const byRes = [...all].sort((a,b)=>(b[1].resolved/b[1].count)-(a[1].resolved/a[1].count)).slice(0,10);
+  // Tab 3 — KG gap articles: cited in at least 1 KG session, sorted by KG count desc
+  const kgOnly = all.filter(([,d])=>d.kg>0).sort((a,b)=>b[1].kg-a[1].kg).slice(0,10);
+
+  const activeKbTab = window._kbTab || 'top';
+
+  panel.innerHTML = `
+    <div class="kb-tabs">
+      <div class="kb-tab ${activeKbTab==='top'?'active':''}"   onclick="switchKBTab('top')">Top 10 by Usage</div>
+      <div class="kb-tab ${activeKbTab==='res'?'active':''}"   onclick="switchKBTab('res')">Article Effectiveness</div>
+      <div class="kb-tab ${activeKbTab==='kg'?'active':''}"    onclick="switchKBTab('kg')">Knowledge Gap Articles</div>
+    </div>
+    <div id="kbTabContent"></div>
+    <p style="font-size:11px;color:var(--muted);margin-top:12px">
+      <strong>Resolution rate</strong> = % of sessions that cited this article and were resolved. &nbsp;|&nbsp;
+      <strong>KG sessions</strong> = cited in sessions where the Agent had a knowledge gap — article may need richer content.
+    </p>`;
+
+  function drawKBTab(tab) {
+    const el = document.getElementById('kbTabContent');
+    if (tab==='top') el.innerHTML = makeTable(top10, ['res','kg']);
+    else if (tab==='res') el.innerHTML = makeTable(byRes, ['res','kg']);
+    else el.innerHTML = kgOnly.length
+      ? makeTable(kgOnly, ['res','kg'])
+      : `<p class="kb-no-data">No articles were cited in Knowledge Gap sessions.</p>`;
+  }
+
+  drawKBTab(activeKbTab);
+
+  window.switchKBTab = function(tab) {
+    window._kbTab = tab;
+    document.querySelectorAll('.kb-tab').forEach(t => {
+      const key = t.getAttribute('onclick').match(/'(\w+)'/)[1];
+      t.classList.toggle('active', key===tab);
+    });
+    drawKBTab(tab);
+  };
+}
+
+function renderPriorities(vis) {
+  const n = vis.length;
+  if (!n) { document.getElementById('priorityList').innerHTML = '<p style="color:var(--muted);font-size:13px">No data for current filters.</p>'; return; }
+
+  const resolved   = vis.filter(r=>r.resolved).length;
+  const unresolved = n - resolved;
+  const kg         = vis.filter(r=>r.kg).length;
+  const ef         = vis.filter(r=>r.ef).length;
+  const esc        = vis.filter(r=>r.escalated).length;
+
+  // Top knowledge-gap cluster
+  const kgClusters = {};
+  vis.filter(r=>r.kg).forEach(r=>kgClusters[r.cluster]=(kgClusters[r.cluster]||0)+1);
+  const topKGCl = Object.entries(kgClusters).sort((a,b)=>b[1]-a[1])[0];
+
+  // Top engagement-failure cluster
+  const efClusters = {};
+  vis.filter(r=>r.ef).forEach(r=>efClusters[r.cluster]=(efClusters[r.cluster]||0)+1);
+  const topEFCl = Object.entries(efClusters).sort((a,b)=>b[1]-a[1])[0];
+
+  // Top unresolved cluster
+  const unresClusters = {};
+  vis.filter(r=>!r.resolved).forEach(r=>unresClusters[r.cluster]=(unresClusters[r.cluster]||0)+1);
+  const topUnresCl = Object.entries(unresClusters).sort((a,b)=>b[1]-a[1])[0];
+
+  // Avg citations — low citiation unresolved sessions
+  const lowCitUnres = vis.filter(r=>!r.resolved && (r.citations||0)===0).length;
+
+  const kgPct   = Math.round(kg/n*100);
+  const efPct   = Math.round(ef/n*100);
+  const resPct  = Math.round(resolved/n*100);
+  const escPct  = Math.round(esc/n*100);
+
+  const actions = [];
+
+  // P1 — Critical if KG > 20%
+  if (kgPct >= 20) {
+    actions.push({
+      badge:'badge-red', tag:'ptag-critical', label:'Critical', num: actions.length+1,
+      title: `Fill Knowledge Gaps — ${kg} Sessions (${kgPct}%) Unresolved Due to Missing Knowledge`,
+      body: `${kg} sessions (${kgPct}%) ended because Agentforce lacked the information to fully answer the customer. Review these sessions to identify recurring topics and prioritise adding relevant knowledge articles and documentation to the Agent's knowledge base.`
+    });
+  }
+
+  // P2 — Critical if unresolved > 35%
+  if (unresolved/n > 0.35) {
+    actions.push({
+      badge:'badge-red', tag:'ptag-critical', label:'Critical', num: actions.length+1,
+      title: `Address ${Math.round(unresolved/n*100)}% Unresolved Rate`,
+      body: `${unresolved} of ${n} sessions ended without a satisfactory answer. The cluster <strong>${topUnresCl ? topUnresCl[0].replace(/_/g,' ') : '—'}</strong> has the highest unresolved volume (${topUnresCl ? topUnresCl[1] : 0} sessions). Combined knowledge gap and engagement failure root causes should be addressed separately — see items below.`
+    });
+  }
+
+  // P3 — Engagement failures
+  if (efPct >= 10) {
+    actions.push({
+      badge:'badge-orange', tag:'ptag-monitor', label:'Monitor', num: actions.length+1,
+      title: `Fix Clarification Behaviour — ${ef} Engagement Failures (${efPct}%)`,
+      body: `Agentforce had the knowledge to answer but failed to ask clarifying questions in ${ef} sessions. The most common pattern: ambiguous product or version context (e.g. "how to reset password" without specifying the Informatica product). Prompt engineering fix — add a clarification step before deflecting. Cluster <strong>${topEFCl ? topEFCl[0].replace(/_/g,' ') : '—'}</strong> has the most failures.`
+    });
+  }
+
+  // P4 — Escalation
+  if (escPct >= 30) {
+    actions.push({
+      badge:'badge-orange', tag:'ptag-monitor', label:'Monitor', num: actions.length+1,
+      title: `Review Escalation Triggers — ${esc} Sessions (${escPct}%) Escalated`,
+      body: `${esc} sessions were redirected to Help or Community portals. Review whether these redirections represent genuine unmet need vs cases Agentforce could have resolved directly. Reducing unnecessary redirections improves containment rate and customer experience.`
+    });
+  }
+
+  // P5 — Zero citation unresolved sessions
+  if (lowCitUnres > 3) {
+    actions.push({
+      badge:'badge-blue', tag:'ptag-optimise', label:'Optimise', num: actions.length+1,
+      title: `Add Citations to ${lowCitUnres} Unresolved Sessions With No References`,
+      body: `${lowCitUnres} unresolved sessions received no knowledge article or documentation references. Even when Agentforce cannot fully resolve an issue, citing relevant articles gives users a path forward and reduces repeat contacts. Review Agent responses in the "Unresolved" tab filtered by 0 citations.`
+    });
+  }
+
+  // P6 — Positive if resolution > 60%
+  if (resPct >= 60) {
+    actions.push({
+      badge:'badge-teal', tag:'ptag-good', label:'Strength', num: actions.length+1,
+      title: `Maintain ${resPct}% Resolution Rate`,
+      body: `Agentforce is successfully resolving ${resolved} of ${n} sessions. Preserve this by ensuring knowledge base updates are reviewed regularly and that high-performing clusters (those with resolution rate near 100%) are monitored for regression as product changes occur.`
+    });
+  }
+
+  document.getElementById('priorityList').innerHTML = actions.map(a=>`
+    <div class="priority-item">
+      <div class="priority-badge ${a.badge}">${a.num}</div>
+      <div class="priority-content">
+        <span class="priority-tag ${a.tag}">${a.label}</span>
+        <h4>${a.title}</h4>
+        <p>${a.body}</p>
+      </div>
+    </div>`).join('');
+}
+
+function toggleExpand(num) {
+  const row = document.getElementById('expand-'+num);
+  if(!row) return;
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+
+function sortTable(col) {
+  if(sortCol===col) sortDir*=-1; else { sortCol=col; sortDir=1; }
+  document.querySelectorAll('thead th').forEach(th=>{th.classList.remove('asc','desc');});
+  const idx=['num','date','cluster','sentiment','exchanges','resolved','kg','ef','ack','escalated','frustrated'];
+  const i=idx.indexOf(col);
+  if(i>=0){const ths=document.querySelectorAll('thead th');if(ths[i])ths[i].classList.add(sortDir===1?'asc':'desc');}
+  renderTable();
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  // Update main tab highlights
+  document.querySelectorAll('#mainTabs .tab').forEach(t => {
+    const key = t.getAttribute('onclick').match(/'(\w+)'/)[1];
+    t.classList.toggle('active', key === tab);
+  });
+  // Show/hide sub-tabs — only visible when Unresolved is active
+  const subTabs = document.getElementById('subTabs');
+  if (tab === 'unres') {
+    subTabs.classList.add('visible');
+    // Reset sub-tab to "All Unresolved"
+    document.querySelectorAll('#subTabs .subtab').forEach((t,i) => t.classList.toggle('active', i===0));
+  } else {
+    subTabs.classList.remove('visible');
+  }
+  renderTable();
+}
+
+function switchSubTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('#subTabs .subtab').forEach(t => {
+    const key = t.getAttribute('onclick').match(/'(\w+)'/)[1];
+    t.classList.toggle('active', key === tab);
+  });
+  renderTable();
+}
+
+function resetFilters() {
+  ['fSentiment','fResolved','fEscalated','fKG','fEF','fCluster','fExchanges'].forEach(id=>{
+    document.getElementById(id).value='all';
+  });
+  document.getElementById('fExchanges').value='all';
+  render();
+}
+
+// ── Wire up filters ───────────────────────────────────────────────────────────
+['fSentiment','fResolved','fEscalated','fKG','fEF','fCluster','fExchanges'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', ()=>{
+    const vis=getVisible();
+    document.getElementById('filterCount').textContent = vis.length < RAW.length ? `Showing ${vis.length} of ${RAW.length}` : '';
+    render();
+  });
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
+
